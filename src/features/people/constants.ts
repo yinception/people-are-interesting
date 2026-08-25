@@ -28,7 +28,7 @@ export const PRESSABLE_ANIMATION = {
 export const LAYER_Z_INDEX = {
   headerRow: 20,
   dropdownTriggerContainer: 30,
-  overlayDismiss: 35,
+  overlayDismiss: 25,
   dropdownMenu: 40,
 } as const;
 

@@ -123,6 +123,19 @@ Automated tests currently focus on:
 
 See `TESTING.md` for more details.
 
+## Troubleshooting
+
+### Fresh install still shows old local data
+
+On Android, app data can be restored from backup even after uninstall/reinstall when using the same package id.
+
+This project disables Android backup in `app.json` (`expo.android.allowBackup: false`) to avoid unintended SQLite restore behavior.
+
+If you still see unexpected old data:
+- Build a new standalone APK after this setting change.
+- Uninstall the existing app from device.
+- Install the new APK and launch again.
+
 ## Current Product Scope (v1)
 - Fully local-first on-device operation
 - No cloud sync
