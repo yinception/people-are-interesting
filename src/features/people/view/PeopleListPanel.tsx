@@ -1,8 +1,10 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
-import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, getPlaceholderTextColor } from '../constants';
+import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, MENU_MODAL_BACKDROP_COLOR, getPlaceholderTextColor } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';
+import { FadeModal } from './FadeModal';
 import type { PeopleScreenUiProps } from './types';
+import { useAnchoredMenu } from './useAnchoredMenu';
 
 const PEOPLE_SORT_OPTIONS: { label: string; value: UsePeopleScreenModelResult['selectedPeopleSortOption'] }[] = [
   { label: 'A-Z', value: 'name_asc' },
@@ -44,19 +46,27 @@ interface PeopleListPanelProps {
   >;
 }
 
+const SORT_MENU_WIDTH = 192;
+const SORT_MENU_MARGIN = 8;
+const SORT_MENU_TOP_OFFSET = 6;
+
 export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
+  const {
+    closeMenu: closeSortMenu,
+    toggleMenu: toggleSortMenu,
+    onTriggerLayout: onSortTriggerLayout,
+    menuLeft,
+    menuTop,
+  } = useAnchoredMenu({
+    isOpen: ui.isPeopleSortMenuOpen,
+    setIsOpen: ui.setIsPeopleSortMenuOpen,
+    menuWidth: SORT_MENU_WIDTH,
+    menuMargin: SORT_MENU_MARGIN,
+    menuTopOffset: SORT_MENU_TOP_OFFSET,
+  });
+
   return (
     <View className="relative flex-1">
-      {ui.isPeopleSortMenuOpen ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close sort menu"
-          onPress={() => ui.setIsPeopleSortMenuOpen(false)}
-          className="absolute inset-0"
-          style={{ zIndex: LAYER_Z_INDEX.overlayDismiss }}
-        />
-      ) : null}
-
       <View className={`mb-3 rounded-2xl border p-3 ${ui.theme.border} ${ui.theme.cardBackground}`}>
         <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Search</Text>
         <View className="mt-2 flex-row gap-2">
@@ -90,38 +100,16 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
           <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>People ({model.peopleCountLabel})</Text>
           <View className="relative flex-row items-center gap-2" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
             {model.isSearching ? <Text className={ui.theme.secondaryText}>Searching...</Text> : null}
-            <AnimatedPressable
-              accessibilityRole="button"
-              onPress={() => ui.setIsPeopleSortMenuOpen((current) => !current)}
-              className={`flex-row items-center rounded-lg px-3 py-2 ${ui.theme.navButton}`}
-            >
-              <Text className={`font-semibold ${ui.theme.navButtonText}`}>≡</Text>
-              <Text className={`ml-1 font-semibold ${ui.theme.navButtonText}`}>▾</Text>
-            </AnimatedPressable>
-
-            {ui.isPeopleSortMenuOpen ? (
-              <View
-                className={`absolute right-0 top-11 w-48 rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
-                style={{ zIndex: LAYER_Z_INDEX.dropdownMenu, elevation: DROPDOWN_MENU_ELEVATION }}
+            <View onLayout={onSortTriggerLayout}>
+              <AnimatedPressable
+                accessibilityRole="button"
+                onPress={toggleSortMenu}
+                className={`flex-row items-center rounded-lg px-3 py-2 ${ui.theme.navButton}`}
               >
-                {PEOPLE_SORT_OPTIONS.map((option) => {
-                  const isSelected = model.selectedPeopleSortOption === option.value;
-                  return (
-                    <AnimatedPressable
-                      key={option.value}
-                      accessibilityRole="button"
-                      onPress={() => {
-                        model.setSelectedPeopleSortOption(option.value);
-                        ui.setIsPeopleSortMenuOpen(false);
-                      }}
-                      className={`px-3 py-2 ${isSelected ? ui.theme.selectedChipBackground : ''}`}
-                    >
-                      <Text className={isSelected ? 'font-semibold text-white' : ui.theme.primaryText}>{option.label}</Text>
-                    </AnimatedPressable>
-                  );
-                })}
-              </View>
-            ) : null}
+                <Text className={`font-semibold ${ui.theme.navButtonText}`}>≡</Text>
+                <Text className={`ml-1 font-semibold ${ui.theme.navButtonText}`}>▾</Text>
+              </AnimatedPressable>
+            </View>
           </View>
         </View>
 
@@ -186,6 +174,43 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
           </AnimatedPressable>
         </View>
       </View>
+
+      <FadeModal
+        visible={ui.isPeopleSortMenuOpen}
+        backdropColor={MENU_MODAL_BACKDROP_COLOR[ui.themeMode]}
+        backdropAccessibilityLabel="Close sort menu"
+        onRequestClose={closeSortMenu}
+      >
+        <View pointerEvents="box-none" className="flex-1">
+          <View
+            className={`absolute rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
+            style={{
+              left: menuLeft,
+              top: menuTop,
+              width: SORT_MENU_WIDTH,
+              zIndex: LAYER_Z_INDEX.dropdownMenu,
+              elevation: DROPDOWN_MENU_ELEVATION,
+            }}
+          >
+            {PEOPLE_SORT_OPTIONS.map((option) => {
+              const isSelected = model.selectedPeopleSortOption === option.value;
+              return (
+                <AnimatedPressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    model.setSelectedPeopleSortOption(option.value);
+                    closeSortMenu();
+                  }}
+                  className={`px-3 py-2 ${isSelected ? ui.theme.selectedChipBackground : ''}`}
+                >
+                  <Text className={isSelected ? 'font-semibold text-white' : ui.theme.primaryText}>{option.label}</Text>
+                </AnimatedPressable>
+              );
+            })}
+          </View>
+        </View>
+      </FadeModal>
     </View>
   );
 }

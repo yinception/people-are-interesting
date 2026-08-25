@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, ScrollView, Text, View } from 'react-native';
 import { PeopleListPanel } from './view/PeopleListPanel';
 import { PersonDetailPanel } from './view/PersonDetailPanel';
 import { ScreenHeader } from './view/ScreenHeader';
 import { SettingsPanel } from './view/SettingsPanel';
 import { AnimatedPressable } from './view/AnimatedPressable';
+import { FadeModal } from './view/FadeModal';
 import { PAGE_TRANSITION, SETTINGS_MODAL_BACKDROP_COLOR } from './constants';
 import type { PeopleScreenViewProps } from './view/types';
 
@@ -45,22 +46,14 @@ export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
         </Animated.View>
       </View>
 
-      <Modal
+      <FadeModal
         visible={ui.viewMode === 'settings'}
-        transparent
-        animationType="fade"
         statusBarTranslucent
+        backdropColor={SETTINGS_MODAL_BACKDROP_COLOR[ui.themeMode]}
+        backdropAccessibilityLabel="Close settings"
         onRequestClose={() => ui.setViewMode('people')}
       >
-        <View className="flex-1 items-center justify-center">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close settings"
-            onPress={() => ui.setViewMode('people')}
-            className="absolute inset-0"
-            style={{ backgroundColor: SETTINGS_MODAL_BACKDROP_COLOR[ui.themeMode] }}
-          />
-
+        <View pointerEvents="box-none" className="flex-1 items-center justify-center">
           <View className={`h-[80%] w-[96%] overflow-hidden rounded-2xl border ${ui.theme.border} ${ui.theme.panelBackground}`}>
             <View className={`flex-row items-center justify-between border-b px-4 py-3 ${ui.theme.border}`}>
               <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>Settings</Text>
@@ -80,7 +73,7 @@ export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </FadeModal>
     </View>
   );
 }

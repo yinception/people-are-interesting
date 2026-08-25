@@ -38,9 +38,23 @@ export const CARD_CLASS = 'rounded-xl border p-3';
 export const CARD_WITH_TOP_MARGIN_CLASS = 'mt-4 rounded-xl border p-3';
 
 export const SETTINGS_MODAL_BACKDROP_COLOR = {
-  dark: 'rgba(2, 6, 23, 0.58)',
-  light: 'rgba(15, 23, 42, 0.38)',
+  dark: 'rgba(2, 6, 23, 0.46)',
+  light: 'rgba(15, 23, 42, 0.24)',
 } as const;
+
+export const MENU_MODAL_BACKDROP_COLOR = {
+  dark: 'rgba(2, 6, 23, 0.14)',
+  light: 'rgba(15, 23, 42, 0.08)',
+} as const;
+
+export const MODAL_FADE_TRANSITION = {
+  initialOpacity: 0,
+  fadeInDurationMs: 220,
+  fadeOutDurationMs: 160,
+  easingPreset: 'smooth',
+} as const;
+
+export type ModalFadeEasingPreset = 'smooth' | 'snappy' | 'linear';
 
 export function getPlaceholderTextColor(themeMode: ThemeMode): string {
   return themeMode === 'dark' ? '#94a3b8' : '#64748b';

@@ -5,10 +5,13 @@ import {
   CARD_WITH_TOP_MARGIN_CLASS,
   DROPDOWN_MENU_ELEVATION,
   LAYER_Z_INDEX,
+  MENU_MODAL_BACKDROP_COLOR,
   getPlaceholderTextColor,
 } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';
+import { FadeModal } from './FadeModal';
 import type { PeopleScreenUiProps } from './types';
+import { useAnchoredMenu } from './useAnchoredMenu';
 
 function formatDateOnly(timestamp: string): string {
   if (!timestamp) {
@@ -101,26 +104,34 @@ interface PersonDetailPanelProps {
   >;
 }
 
+const PERSON_ACTIONS_MENU_WIDTH = 160;
+const PERSON_ACTIONS_MENU_MARGIN = 8;
+const PERSON_ACTIONS_MENU_TOP_OFFSET = 6;
+
 export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
   if (!model.selectedPerson) {
     return null;
   }
+
+  const {
+    closeMenu: closePersonActionsMenu,
+    toggleMenu: togglePersonActionsMenu,
+    onTriggerLayout: onActionsTriggerLayout,
+    menuLeft,
+    menuTop,
+  } = useAnchoredMenu({
+    isOpen: ui.isPersonActionsMenuOpen,
+    setIsOpen: ui.setIsPersonActionsMenuOpen,
+    menuWidth: PERSON_ACTIONS_MENU_WIDTH,
+    menuMargin: PERSON_ACTIONS_MENU_MARGIN,
+    menuTopOffset: PERSON_ACTIONS_MENU_TOP_OFFSET,
+  });
 
   const floatingHeaderBaseHeight = model.isPersonNameEditMode ? 100 : 60;
   const floatingHeaderBottomGap = 0;
 
   return (
     <View className="flex-1">
-      {ui.isPersonActionsMenuOpen ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close person actions menu"
-          onPress={() => ui.setIsPersonActionsMenuOpen(false)}
-          className="absolute inset-0"
-          style={{ zIndex: LAYER_Z_INDEX.overlayDismiss }}
-        />
-      ) : null}
-
       <View className={`absolute left-0 right-0 top-0 z-30 px-1 py-1 ${ui.theme.panelBackground}`}>
         {model.isPersonNameEditMode ? (
           <View className="mt-1">
@@ -182,43 +193,15 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
               <Text className={`flex-1 text-2xl font-bold ${ui.theme.headingText}`}>{model.selectedPerson.name}</Text>
             </Pressable>
             <View className="relative" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
-              <AnimatedPressable
-                accessibilityRole="button"
-                onPress={() => ui.setIsPersonActionsMenuOpen((current) => !current)}
-                className={`h-10 w-10 items-center justify-center rounded-lg ${ui.theme.navButton}`}
-              >
-                <Text className={`text-lg font-semibold ${ui.theme.navButtonText}`}>⋮</Text>
-              </AnimatedPressable>
-
-              {ui.isPersonActionsMenuOpen ? (
-                <View
-                  className={`absolute right-0 top-11 w-40 rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
-                  style={{ zIndex: LAYER_Z_INDEX.dropdownMenu, elevation: DROPDOWN_MENU_ELEVATION }}
+              <View onLayout={onActionsTriggerLayout}>
+                <AnimatedPressable
+                  accessibilityRole="button"
+                  onPress={togglePersonActionsMenu}
+                  className={`h-10 w-10 items-center justify-center rounded-lg ${ui.theme.navButton}`}
                 >
-                  <AnimatedPressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      ui.setIsPersonActionsMenuOpen(false);
-                      model.onStartEditPersonNamePress();
-                    }}
-                    className="px-3 py-2"
-                  >
-                    <Text className={ui.theme.primaryText}>Edit name</Text>
-                  </AnimatedPressable>
-                  <View className={`border-t ${ui.theme.border}`} />
-                  <AnimatedPressable
-                    accessibilityRole="button"
-                    disabled={model.isDeletingPerson}
-                    onPress={() => {
-                      ui.setIsPersonActionsMenuOpen(false);
-                      ui.onConfirmDeletePersonPress();
-                    }}
-                    className="px-3 py-2"
-                  >
-                    <Text className="text-rose-600">Delete person</Text>
-                  </AnimatedPressable>
-                </View>
-              ) : null}
+                  <Text className={`text-lg font-semibold ${ui.theme.navButtonText}`}>⋮</Text>
+                </AnimatedPressable>
+              </View>
             </View>
           </View>
         )}
@@ -232,7 +215,6 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
           paddingBottom: 12 + ui.keyboardLift,
         }}
       >
-
       <View
         className={`${CARD_CLASS} ${ui.theme.border} ${ui.theme.cardBackground}`}
         onLayout={(event) => {
@@ -529,6 +511,49 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
 
         {model.isDeletingPerson ? <Text className={`mt-4 text-sm ${ui.theme.tertiaryText}`}>Deleting person...</Text> : null}
       </ScrollView>
+
+      <FadeModal
+        visible={ui.isPersonActionsMenuOpen}
+        backdropColor={MENU_MODAL_BACKDROP_COLOR[ui.themeMode]}
+        backdropAccessibilityLabel="Close person actions menu"
+        onRequestClose={closePersonActionsMenu}
+      >
+        <View pointerEvents="box-none" className="flex-1">
+          <View
+            className={`absolute rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
+            style={{
+              left: menuLeft,
+              top: menuTop,
+              width: PERSON_ACTIONS_MENU_WIDTH,
+              zIndex: LAYER_Z_INDEX.dropdownMenu,
+              elevation: DROPDOWN_MENU_ELEVATION,
+            }}
+          >
+            <AnimatedPressable
+              accessibilityRole="button"
+              onPress={() => {
+                closePersonActionsMenu();
+                model.onStartEditPersonNamePress();
+              }}
+              className="px-3 py-2"
+            >
+              <Text className={ui.theme.primaryText}>Edit name</Text>
+            </AnimatedPressable>
+            <View className={`border-t ${ui.theme.border}`} />
+            <AnimatedPressable
+              accessibilityRole="button"
+              disabled={model.isDeletingPerson}
+              onPress={() => {
+                closePersonActionsMenu();
+                ui.onConfirmDeletePersonPress();
+              }}
+              className="px-3 py-2"
+            >
+              <Text className="text-rose-600">Delete person</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+      </FadeModal>
     </View>
   );
 }
