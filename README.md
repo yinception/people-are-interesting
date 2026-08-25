@@ -1,6 +1,6 @@
 # People Are Interesting
 
-People Are Interesting is a local-first mobile app for keeping lightweight notes about people you know, browsing each person's timeline, and recording relationships between people.
+People Are Interesting is a local-first mobile app for creating and managing notes about people you meet and know.
 
 The app is built with Expo + React Native + TypeScript and uses SQLite on-device storage (no backend, no auth in v1).
 
@@ -13,6 +13,7 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
   - Name (A-Z, Z-A)
   - Created time (old-new, new-old)
   - Last modified time (old-new, new-old)
+- Persist the selected sort option across app restarts.
 - Open a person detail view.
 - Edit or delete a person.
 

@@ -1,4 +1,9 @@
-import { getThemeModeSetting, setThemeModeSetting } from '../settingsRepository';
+import {
+  getPeopleSortSetting,
+  getThemeModeSetting,
+  setPeopleSortSetting,
+  setThemeModeSetting,
+} from '../settingsRepository';
 import { createMockDb } from './repositoryTestUtils';
 
 jest.mock('../../db/client', () => ({
@@ -41,6 +46,38 @@ describe('settingsRepository', () => {
     getDatabase.mockResolvedValue(db);
 
     await setThemeModeSetting('light');
+    expect(db.runAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test('returns null for missing people sort setting', async () => {
+    const db = createMockDb();
+    db.getFirstAsync.mockResolvedValue(null);
+    getDatabase.mockResolvedValue(db);
+
+    await expect(getPeopleSortSetting()).resolves.toBeNull();
+  });
+
+  test('returns null for invalid people sort setting', async () => {
+    const db = createMockDb();
+    db.getFirstAsync.mockResolvedValue({ key: 'people_sort', value: 'random' });
+    getDatabase.mockResolvedValue(db);
+
+    await expect(getPeopleSortSetting()).resolves.toBeNull();
+  });
+
+  test('returns valid people sort setting', async () => {
+    const db = createMockDb();
+    db.getFirstAsync.mockResolvedValue({ key: 'people_sort', value: 'name_asc' });
+    getDatabase.mockResolvedValue(db);
+
+    await expect(getPeopleSortSetting()).resolves.toBe('name_asc');
+  });
+
+  test('upserts people sort setting', async () => {
+    const db = createMockDb();
+    getDatabase.mockResolvedValue(db);
+
+    await setPeopleSortSetting('last_modified_desc');
     expect(db.runAsync).toHaveBeenCalledTimes(1);
   });
 });

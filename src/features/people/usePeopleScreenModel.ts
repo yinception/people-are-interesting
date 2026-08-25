@@ -10,8 +10,10 @@ import {
   listNotesByPersonNewestFirst,
   listPeopleWithLatestNote,
   listRelationshipsForPerson,
+  getPeopleSortSetting,
   searchPeopleAndNotes,
   seedSampleData,
+  setPeopleSortSetting,
   updatePersonName,
   updateNote,
   type Note,
@@ -127,7 +129,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   const [searchTerm, setSearchTerm] = useState('');
   const [relationshipSearchTerm, setRelationshipSearchTerm] = useState('');
   const [relationshipTypeInput, setRelationshipTypeInput] = useState('');
-  const [selectedPeopleSortOption, setSelectedPeopleSortOption] =
+  const [selectedPeopleSortOption, setSelectedPeopleSortOptionState] =
     useState<PeopleSortOption>('last_modified_desc');
 
   const [searchResults, setSearchResults] = useState<PersonSearchResult[]>([]);
@@ -181,6 +183,10 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     async function setup() {
       try {
         await initializeDatabase();
+        const savedSort = await getPeopleSortSetting();
+        if (savedSort) {
+          setSelectedPeopleSortOptionState(savedSort);
+        }
         await loadPeople();
       } catch (setupError) {
         setError(setupError instanceof Error ? setupError.message : 'Unknown setup error');
@@ -191,6 +197,13 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
 
     setup();
   }, [loadPeople]);
+
+  const setSelectedPeopleSortOption = useCallback((option: PeopleSortOption) => {
+    setSelectedPeopleSortOptionState(option);
+    void setPeopleSortSetting(option).catch(() => {
+      // Keep local state update even if persistence fails.
+    });
+  }, []);
 
   useEffect(() => {
     const trimmedTerm = searchTerm.trim();

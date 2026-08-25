@@ -15,4 +15,11 @@ export { addNote, deleteNote, listNotesByPersonNewestFirst, updateNote } from '.
 export { createPerson, deletePerson, listPeopleWithLatestNote, updatePersonName } from './repositories/peopleRepository';
 export { createRelationship, deleteRelationship, listRelationshipsForPerson } from './repositories/relationshipsRepository';
 export { searchPeopleAndNotes } from './repositories/searchRepository';
-export { getThemeModeSetting, setThemeModeSetting, type ThemeModeSetting } from './repositories/settingsRepository';
+export {
+  getPeopleSortSetting,
+  getThemeModeSetting,
+  setPeopleSortSetting,
+  setThemeModeSetting,
+  type PeopleSortSetting,
+  type ThemeModeSetting,
+} from './repositories/settingsRepository';
