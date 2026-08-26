@@ -20,10 +20,10 @@ These tests currently cover core local-first v1 data flows:
 - Repository shared utilities
 - People repository flows (create, list, update, delete)
 - Notes repository flows (create, list, update, delete)
-- Relationships repository flows (create/update pair behavior, list, delete)
+- Relationships repository flows (create/update pair behavior, two-way label storage, list, delete)
 - Search repository behavior
 - Settings repository behavior
-- Import/export repository flows and validation
+- Import/export repository flows, validation, export/import round-trip, and backward-compatible CSV columns
 
 ## CI
 

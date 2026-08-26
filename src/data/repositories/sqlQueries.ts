@@ -52,10 +52,10 @@ export const SELECT_PEOPLE_BY_IDS_SQL = `SELECT id FROM ${DB_TABLE.people} WHERE
 export const SELECT_RELATIONSHIP_ID_BY_PAIR_SQL =
   `SELECT id FROM ${DB_TABLE.relationships} WHERE person_id_a = ? AND person_id_b = ?`;
 export const SELECT_RELATIONSHIP_BY_ID_SQL = `SELECT * FROM ${DB_TABLE.relationships} WHERE id = ?`;
-export const UPDATE_RELATIONSHIP_TYPE_SQL =
-  `UPDATE ${DB_TABLE.relationships} SET relationship_type = ? WHERE id = ?`;
+export const UPDATE_RELATIONSHIP_TYPES_SQL =
+  `UPDATE ${DB_TABLE.relationships} SET relationship_type = ?, reverse_relationship_type = ? WHERE id = ?`;
 export const INSERT_RELATIONSHIP_SQL =
-  `INSERT INTO ${DB_TABLE.relationships} (person_id_a, person_id_b, relationship_type) VALUES (?, ?, ?)`;
+  `INSERT INTO ${DB_TABLE.relationships} (person_id_a, person_id_b, relationship_type, reverse_relationship_type) VALUES (?, ?, ?, ?)`;
 export const DELETE_RELATIONSHIP_BY_ID_SQL = `DELETE FROM ${DB_TABLE.relationships} WHERE id = ?`;
 export const LIST_RELATIONSHIPS_FOR_PERSON_BY_CREATED_SQL = `
   SELECT *

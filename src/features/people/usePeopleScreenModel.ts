@@ -35,7 +35,10 @@ interface RelationshipViewItem {
   id: number;
   otherPersonId: number;
   otherPersonName: string;
-  relationshipType: string | null;
+  /** How the other person relates to the selected person. */
+  otherPersonRelationshipType: string | null;
+  /** How the selected person relates to the other person. */
+  selectedPersonRelationshipType: string | null;
 }
 
 export interface UsePeopleScreenModelResult {
@@ -90,6 +93,7 @@ export interface UsePeopleScreenModelResult {
   relationshipSearchTerm: string;
   relationshipItems: RelationshipViewItem[];
   relationshipTypeInput: string;
+  reverseRelationshipTypeInput: string;
   selectedPeopleSortOption: PeopleSortOption;
   searchTerm: string;
   selectedPerson: PersonWithLatestNote | null;
@@ -99,6 +103,7 @@ export interface UsePeopleScreenModelResult {
   setNewNoteContent: (value: string) => void;
   setNewPersonName: (name: string) => void;
   setRelationshipTypeInput: (value: string) => void;
+  setReverseRelationshipTypeInput: (value: string) => void;
   setSelectedPeopleSortOption: (option: PeopleSortOption) => void;
   setRelationshipSearchTerm: (term: string) => void;
   setSearchTerm: (term: string) => void;
@@ -129,6 +134,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   const [searchTerm, setSearchTerm] = useState('');
   const [relationshipSearchTerm, setRelationshipSearchTerm] = useState('');
   const [relationshipTypeInput, setRelationshipTypeInput] = useState('');
+  const [reverseRelationshipTypeInput, setReverseRelationshipTypeInput] = useState('');
   const [selectedPeopleSortOption, setSelectedPeopleSortOptionState] =
     useState<PeopleSortOption>('last_modified_desc');
 
@@ -154,6 +160,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setSelectedRelationshipTargetId(null);
       setRelationshipSearchTerm('');
       setRelationshipTypeInput('');
+      setReverseRelationshipTypeInput('');
       setEditingNoteId(null);
       setEditingNoteContent('');
       setIsPersonNameEditMode(false);
@@ -307,17 +314,20 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     const personNameById = new Map(people.map((person) => [person.id, person.name]));
 
     return relationships.map((relationship) => {
-      const otherPersonId =
-        relationship.person_id_a === selectedPersonId
-          ? relationship.person_id_b
-          : relationship.person_id_a;
+      const isSelectedPersonA = relationship.person_id_a === selectedPersonId;
+      const otherPersonId = isSelectedPersonA ? relationship.person_id_b : relationship.person_id_a;
 
       return {
         createdAt: relationship.created_at,
         id: relationship.id,
         otherPersonId,
         otherPersonName: personNameById.get(otherPersonId) ?? `Person #${otherPersonId}`,
-        relationshipType: relationship.relationship_type,
+        otherPersonRelationshipType: isSelectedPersonA
+          ? relationship.relationship_type
+          : relationship.reverse_relationship_type,
+        selectedPersonRelationshipType: isSelectedPersonA
+          ? relationship.reverse_relationship_type
+          : relationship.relationship_type,
       };
     });
   }, [people, relationships, selectedPersonId]);
@@ -340,6 +350,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setSelectedPersonId(createdPerson.id);
       setSelectedRelationshipTargetId(null);
       setRelationshipTypeInput('');
+      setReverseRelationshipTypeInput('');
       setNewNoteContent('');
       setNewPersonName('');
       await Promise.all([
@@ -465,6 +476,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setSelectedPersonId(null);
       setSelectedRelationshipTargetId(null);
       setRelationshipTypeInput('');
+      setReverseRelationshipTypeInput('');
       setNewNoteContent('');
       setEditingNoteId(null);
       setEditingNoteContent('');
@@ -517,8 +529,12 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     try {
       setIsCreatingRelationship(true);
       setError(null);
-      await createRelationship(selectedPersonId, selectedRelationshipTargetId, relationshipTypeInput);
+      await createRelationship(selectedPersonId, selectedRelationshipTargetId, {
+        relationshipType: relationshipTypeInput,
+        reverseRelationshipType: reverseRelationshipTypeInput,
+      });
       setRelationshipTypeInput('');
+      setReverseRelationshipTypeInput('');
       setRelationshipSearchTerm('');
       setSelectedRelationshipTargetId(null);
       await loadSelectedPersonDetails(selectedPersonId);
@@ -527,11 +543,18 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     } finally {
       setIsCreatingRelationship(false);
     }
-  }, [loadSelectedPersonDetails, relationshipTypeInput, selectedPersonId, selectedRelationshipTargetId]);
+  }, [
+    loadSelectedPersonDetails,
+    relationshipTypeInput,
+    reverseRelationshipTypeInput,
+    selectedPersonId,
+    selectedRelationshipTargetId,
+  ]);
 
   const onStartEditRelationshipPress = useCallback((relationship: RelationshipViewItem) => {
     setSelectedRelationshipTargetId(relationship.otherPersonId);
-    setRelationshipTypeInput(relationship.relationshipType ?? '');
+    setRelationshipTypeInput(relationship.otherPersonRelationshipType ?? '');
+    setReverseRelationshipTypeInput(relationship.selectedPersonRelationshipType ?? '');
     setRelationshipSearchTerm(relationship.otherPersonName);
   }, []);
 
@@ -564,6 +587,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setSelectedPersonId(personId);
       setSelectedRelationshipTargetId(null);
       setRelationshipTypeInput('');
+      setReverseRelationshipTypeInput('');
       setRelationshipSearchTerm('');
       setNewNoteContent('');
       setIsPersonNameEditMode(false);
@@ -587,6 +611,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     setSelectedRelationshipTargetId(null);
     setRelationshipSearchTerm('');
     setRelationshipTypeInput('');
+    setReverseRelationshipTypeInput('');
     setNewNoteContent('');
     setEditingNoteId(null);
     setEditingNoteContent('');
@@ -658,6 +683,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     relationshipSearchTerm,
     relationshipItems,
     relationshipTypeInput,
+    reverseRelationshipTypeInput,
     selectedPeopleSortOption,
     searchTerm,
     selectedPerson,
@@ -668,6 +694,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     setNewPersonName,
     setRelationshipSearchTerm,
     setRelationshipTypeInput,
+    setReverseRelationshipTypeInput,
     setSelectedPeopleSortOption,
     setSearchTerm,
     setSelectedRelationshipTargetId,

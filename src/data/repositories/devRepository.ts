@@ -45,9 +45,10 @@ export async function seedSampleData(): Promise<void> {
       createdRelationships += 1;
 
       await txn.runAsync(
-        'INSERT INTO relationships (person_id_a, person_id_b, relationship_type) VALUES (?, ?, ?)',
+        'INSERT INTO relationships (person_id_a, person_id_b, relationship_type, reverse_relationship_type) VALUES (?, ?, ?, ?)',
         leftId,
         rightId,
+        RELATIONSHIP_TYPES[randomInt(0, RELATIONSHIP_TYPES.length - 1)],
         RELATIONSHIP_TYPES[randomInt(0, RELATIONSHIP_TYPES.length - 1)]
       );
     }

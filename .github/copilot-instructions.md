@@ -21,7 +21,7 @@ People Are Interesting is a mobile app for capturing notes about people, viewing
 
 - Add people.
 - Add notes on people.
-- Add relationships between people using free-text relationship_type.
+- Add relationships between people using free-text relationship labels, stored per direction.
 - Search by people.name and notes.content keywords.
 - People list shows most recent note preview per person.
 - Person detail shows notes newest-first; tapping a note reveals full timestamp.
@@ -80,6 +80,7 @@ CREATE TABLE relationships (
   person_id_a INTEGER NOT NULL,
   person_id_b INTEGER NOT NULL,
   relationship_type TEXT,
+  reverse_relationship_type TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (person_id_a) REFERENCES people(id) ON DELETE CASCADE,
   FOREIGN KEY (person_id_b) REFERENCES people(id) ON DELETE CASCADE
@@ -93,6 +94,10 @@ CREATE INDEX idx_relationships_b ON relationships(person_id_b);
 ## Query and Data Notes
 
 - Relationship is one row per pair.
+- `relationship_type` describes person_id_b relative to person_id_a.
+- `reverse_relationship_type` describes person_id_a relative to person_id_b.
+- Both relationship labels are optional and swap together whenever pair order is normalized.
+- Each direction is stored independently, so one-way labels are valid.
 - Latest-note summary is computed with ORDER BY created_at DESC LIMIT 1.
 - V1 search uses LIKE on people.name and notes.content.
 - Timestamps are stored as ISO 8601 text.

@@ -67,6 +67,8 @@ interface PersonDetailPanelProps {
     | 'relationshipCandidates'
     | 'selectedRelationshipTargetId'
     | 'relationshipTypeInput'
+    | 'reverseRelationshipTypeInput'
+    | 'setReverseRelationshipTypeInput'
     | 'isCreatingRelationship'
     | 'canSaveRelationship'
     | 'onCreateRelationshipPress'
@@ -132,12 +134,30 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
 
   const floatingHeaderBaseHeight = model.isPersonNameEditMode ? 100 : 60;
   const floatingHeaderBottomGap = 0;
+  const selectedPersonName = model.selectedPerson.name;
+  const selectedRelationshipCandidateName =
+    model.relationshipCandidates.find((candidate) => candidate.id === model.selectedRelationshipTargetId)?.name ??
+    model.relationshipSearchTerm.trim();
   const noteOffsetByIdRef = useRef<Map<number, number>>(new Map());
   const relationshipSearchRowRelativeOffsetYRef = useRef(0);
 
   const updateRelationshipSearchInputOffset = () => {
     ui.relationshipSearchInputRowOffsetYRef.current =
       ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
+  };
+
+  const resolveRelationshipSearchOffsetY = () =>
+    Math.max(
+      0,
+      ui.relationshipSearchInputRowOffsetYRef.current > 0
+        ? ui.relationshipSearchInputRowOffsetYRef.current
+        : ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current
+    );
+
+  const focusRelationshipSection = () => {
+    if (ui.relationshipSearchInputRowOffsetYRef.current > 0) {
+      ui.onFocusPersonDetailSection(ui.relationshipSearchInputRowOffsetYRef.current);
+    }
   };
 
   return (
@@ -411,8 +431,13 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
               >
                 <Text className={ui.theme.primaryText}>
                   {item.otherPersonName}
-                  {item.relationshipType ? ` (${item.relationshipType})` : ''}
+                  {item.otherPersonRelationshipType ? ` (${item.otherPersonRelationshipType})` : ''}
                 </Text>
+                {!item.otherPersonRelationshipType && item.selectedPersonRelationshipType ? (
+                  <Text className={`mt-0.5 text-xs ${ui.theme.tertiaryText}`}>
+                    {`${selectedPersonName} is ${item.otherPersonName}'s ${item.selectedPersonRelationshipType}`}
+                  </Text>
+                ) : null}
 
                 {ui.expandedRelationshipId === item.id ? (
                   <View className="mt-2 flex-row gap-2">
@@ -462,20 +487,11 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
             value={model.relationshipSearchTerm}
             onChangeText={model.setRelationshipSearchTerm}
             onFocus={() => {
-              const immediateTargetOffsetY =
-                ui.relationshipSearchInputRowOffsetYRef.current > 0
-                  ? ui.relationshipSearchInputRowOffsetYRef.current
-                  : ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
+              ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
 
-              ui.onFocusPersonDetailSection(Math.max(0, immediateTargetOffsetY));
-
+              // Re-align once layout settles after the results list appears.
               requestAnimationFrame(() => {
-                const refreshedTargetOffsetY =
-                  ui.relationshipSearchInputRowOffsetYRef.current > 0
-                    ? ui.relationshipSearchInputRowOffsetYRef.current
-                    : ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
-
-                ui.onFocusPersonDetailSection(Math.max(0, refreshedTargetOffsetY));
+                ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
               });
             }}
             placeholder="Search people to link"
@@ -488,6 +504,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
               model.setRelationshipSearchTerm('');
               model.setSelectedRelationshipTargetId(null);
               model.setRelationshipTypeInput('');
+              model.setReverseRelationshipTypeInput('');
             }}
             disabled={!ui.hasRelationshipSearchTerm}
             className={`h-11 items-center justify-center rounded-xl px-3 ${
@@ -545,29 +562,42 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
         ) : null}
 
         {ui.hasRelationshipSearchTerm && ui.hasSelectedRelationshipCandidate ? (
-          <View className="mt-2 flex-row gap-2">
+          <View className="mt-2">
+            <Text className={`text-xs ${ui.theme.tertiaryText}`}>
+              {`${selectedRelationshipCandidateName} is ${selectedPersonName}'s`}
+            </Text>
             <TextInput
               ref={ui.relationshipTypeInputRef}
               value={model.relationshipTypeInput}
               onChangeText={model.setRelationshipTypeInput}
-              onFocus={() => {
-                const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
-                if (targetOffsetY > 0) {
-                  ui.onFocusPersonDetailSection(targetOffsetY);
-                }
-              }}
+              onFocus={focusRelationshipSection}
+              placeholder="Relationship type (optional)"
+              placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
+              editable={!model.isCreatingRelationship}
+              returnKeyType="next"
+              className={`mt-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
+            />
+
+            <Text className={`mt-3 text-xs ${ui.theme.tertiaryText}`}>
+              {`${selectedPersonName} is ${selectedRelationshipCandidateName}'s`}
+            </Text>
+            <TextInput
+              value={model.reverseRelationshipTypeInput}
+              onChangeText={model.setReverseRelationshipTypeInput}
+              onFocus={focusRelationshipSection}
               onSubmitEditing={() => void model.onCreateRelationshipPress()}
               placeholder="Relationship type (optional)"
               placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
               editable={!model.isCreatingRelationship}
               returnKeyType="done"
-              className={`flex-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
+              className={`mt-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
             />
+
             <AnimatedPressable
               accessibilityRole="button"
               disabled={!model.canSaveRelationship || model.isCreatingRelationship}
               onPress={model.onCreateRelationshipPress}
-              className={`h-11 items-center justify-center rounded-xl px-4 ${
+              className={`mt-3 h-11 items-center justify-center rounded-xl px-4 ${
                 !model.canSaveRelationship || model.isCreatingRelationship ? 'bg-slate-400' : 'bg-teal-600'
               }`}
             >

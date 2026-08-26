@@ -12,13 +12,20 @@ import {
   SELECT_PEOPLE_BY_IDS_SQL,
   SELECT_RELATIONSHIP_BY_ID_SQL,
   SELECT_RELATIONSHIP_ID_BY_PAIR_SQL,
-  UPDATE_RELATIONSHIP_TYPE_SQL,
+  UPDATE_RELATIONSHIP_TYPES_SQL,
 } from './sqlQueries';
+
+export interface RelationshipTypeLabels {
+  /** How the second person relates to the first person. */
+  relationshipType: string | null;
+  /** How the first person relates to the second person. */
+  reverseRelationshipType: string | null;
+}
 
 export async function createRelationship(
   personIdA: number,
   personIdB: number,
-  relationshipType: string | null
+  labels: Partial<RelationshipTypeLabels> = {}
 ): Promise<Relationship> {
   const db = await getDatabase();
 
@@ -27,7 +34,11 @@ export async function createRelationship(
   }
 
   const [leftId, rightId] = normalizeRelationshipPair(personIdA, personIdB);
-  const normalizedType = relationshipType?.trim() || null;
+  const isPairSwapped = leftId !== personIdA;
+  const forwardType = labels.relationshipType?.trim() || null;
+  const reverseType = labels.reverseRelationshipType?.trim() || null;
+  const storedType = isPairSwapped ? reverseType : forwardType;
+  const storedReverseType = isPairSwapped ? forwardType : reverseType;
 
   const people = await db.getAllAsync<{ id: number }>(SELECT_PEOPLE_BY_IDS_SQL, leftId, rightId);
   if (people.length !== 2) {
@@ -41,14 +52,20 @@ export async function createRelationship(
   );
 
   if (existing) {
-    await db.runAsync(UPDATE_RELATIONSHIP_TYPE_SQL, normalizedType, existing.id);
+    await db.runAsync(UPDATE_RELATIONSHIP_TYPES_SQL, storedType, storedReverseType, existing.id);
     return requireRow(
       await db.getFirstAsync<Relationship>(SELECT_RELATIONSHIP_BY_ID_SQL, existing.id),
       'Failed to read updated relationship.'
     );
   }
 
-  const result = await db.runAsync(INSERT_RELATIONSHIP_SQL, leftId, rightId, normalizedType);
+  const result = await db.runAsync(
+    INSERT_RELATIONSHIP_SQL,
+    leftId,
+    rightId,
+    storedType,
+    storedReverseType
+  );
 
   return requireRow(
     await db.getFirstAsync<Relationship>(SELECT_RELATIONSHIP_BY_ID_SQL, result.lastInsertRowId),

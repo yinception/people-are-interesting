@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getDatabase } from './client';
 import {
   ADD_NOTE_UPDATED_AT_COLUMN_SQL,
+  ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL,
   BACKFILL_NOTE_UPDATED_AT_SQL,
   CREATE_APP_SETTINGS_TABLE_SQL,
   CREATE_UNIQUE_RELATIONSHIP_PAIR_INDEX_SQL,
@@ -36,6 +37,10 @@ const migrationSteps: MigrationStep[] = [
   {
     version: 4,
     up: migrateToV4,
+  },
+  {
+    version: 5,
+    up: migrateToV5,
   },
 ];
 
@@ -106,4 +111,15 @@ async function migrateToV4(db: SQLiteDatabase): Promise<void> {
   }
 
   await db.execAsync(BACKFILL_NOTE_UPDATED_AT_SQL);
+}
+
+async function migrateToV5(db: SQLiteDatabase): Promise<void> {
+  const relationshipColumns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(relationships)');
+  const hasReverseTypeColumn = relationshipColumns.some(
+    (column) => column.name === 'reverse_relationship_type'
+  );
+
+  if (!hasReverseTypeColumn) {
+    await db.execAsync(ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL);
+  }
 }

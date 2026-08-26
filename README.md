@@ -26,7 +26,12 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
 
 ### 3. Relationships Between People
 - Search and select another person to link.
-- Save optional relationship type text (for example: friend, teammate, mentor).
+- Save up to two optional relationship labels per pair, one for each direction:
+  - who the other person is to the current person (for example: mentor)
+  - who the current person is to the other person (for example: mentee)
+- Both labels are optional and free text.
+- Each direction is independent, so a relationship can be labeled one way only.
+- Labels are always shown from the perspective of the person you are viewing.
 - Re-using the same pair updates the existing relationship instead of creating duplicates.
 - View, edit, and delete relationships.
 
@@ -43,8 +48,9 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
 - Import/export includes:
   - People
   - Notes
-  - Relationships
+  - Relationships (both directional labels)
   - App settings (for example theme mode)
+- Import matches CSV columns by name, so exports created before a column was added still import.
 
 ### 6. App Settings
 - Light/dark theme toggle.
@@ -84,6 +90,7 @@ Core tables:
 
 Design notes:
 - Relationships are stored as one normalized row per person pair.
+- Each relationship row stores two optional labels: `relationship_type` describes `person_id_b` relative to `person_id_a`, and `reverse_relationship_type` describes `person_id_a` relative to `person_id_b`.
 - Notes include `created_at` and `updated_at` timestamps.
 - Search uses `LIKE` against person names and note content.
 

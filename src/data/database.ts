@@ -14,6 +14,7 @@ export { exportAllDataAsCsv, importAllDataFromCsv } from './repositories/exportR
 export { addNote, deleteNote, listNotesByPersonNewestFirst, updateNote } from './repositories/notesRepository';
 export { createPerson, deletePerson, listPeopleWithLatestNote, updatePersonName } from './repositories/peopleRepository';
 export { createRelationship, deleteRelationship, listRelationshipsForPerson } from './repositories/relationshipsRepository';
+export type { RelationshipTypeLabels } from './repositories/relationshipsRepository';
 export { searchPeopleAndNotes } from './repositories/searchRepository';
 export {
   getPeopleSortSetting,

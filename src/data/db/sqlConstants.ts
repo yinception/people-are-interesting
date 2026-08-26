@@ -36,6 +36,7 @@ export const CREATE_V1_SCHEMA_SQL = `
     person_id_a INTEGER NOT NULL,
     person_id_b INTEGER NOT NULL,
     relationship_type TEXT,
+    reverse_relationship_type TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (person_id_a) REFERENCES people(id) ON DELETE CASCADE,
     FOREIGN KEY (person_id_b) REFERENCES people(id) ON DELETE CASCADE
@@ -87,3 +88,6 @@ export const CREATE_UNIQUE_RELATIONSHIP_PAIR_INDEX_SQL = `
 export const ADD_NOTE_UPDATED_AT_COLUMN_SQL = 'ALTER TABLE notes ADD COLUMN updated_at TEXT;';
 export const BACKFILL_NOTE_UPDATED_AT_SQL =
   "UPDATE notes SET updated_at = created_at WHERE updated_at IS NULL OR TRIM(updated_at) = '';";
+
+export const ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL =
+  'ALTER TABLE relationships ADD COLUMN reverse_relationship_type TEXT;';
