@@ -34,14 +34,27 @@ export function AnimatedPressable({
   ...props
 }: AnimatedPressableProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const disabledRef = useRef(disabled);
   const opacity = useRef(
     new Animated.Value(disabled ? PRESSABLE_ANIMATION.disabledRestOpacity : PRESSABLE_ANIMATION.enabledRestOpacity)
   ).current;
 
+  disabledRef.current = disabled;
+
   useEffect(() => {
+    opacity.stopAnimation();
+    scale.stopAnimation();
+
     Animated.timing(opacity, {
       toValue: disabled ? PRESSABLE_ANIMATION.disabledRestOpacity : PRESSABLE_ANIMATION.enabledRestOpacity,
       duration: PRESSABLE_ANIMATION.settleDurationMs,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.spring(scale, {
+      toValue: 1,
+      speed: PRESSABLE_ANIMATION.pressOutSpringSpeed,
+      bounciness: PRESSABLE_ANIMATION.pressOutBounciness,
       useNativeDriver: true,
     }).start();
   }, [disabled, opacity]);
@@ -55,6 +68,11 @@ export function AnimatedPressable({
   );
 
   const handlePressIn = (event: GestureResponderEvent) => {
+    const isDisabled = disabledRef.current;
+
+    opacity.stopAnimation();
+    scale.stopAnimation();
+
     Animated.parallel([
       Animated.spring(scale, {
         toValue: PRESSABLE_ANIMATION.pressedScale,
@@ -63,7 +81,7 @@ export function AnimatedPressable({
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
-        toValue: disabled ? PRESSABLE_ANIMATION.disabledPressedOpacity : PRESSABLE_ANIMATION.enabledPressedOpacity,
+        toValue: isDisabled ? PRESSABLE_ANIMATION.disabledPressedOpacity : PRESSABLE_ANIMATION.enabledPressedOpacity,
         duration: PRESSABLE_ANIMATION.pressDurationMs,
         useNativeDriver: true,
       }),
@@ -73,6 +91,11 @@ export function AnimatedPressable({
   };
 
   const handlePressOut = (event: GestureResponderEvent) => {
+    const isDisabled = disabledRef.current;
+
+    opacity.stopAnimation();
+    scale.stopAnimation();
+
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -81,7 +104,7 @@ export function AnimatedPressable({
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
-        toValue: disabled ? PRESSABLE_ANIMATION.disabledPressedOpacity : PRESSABLE_ANIMATION.enabledRestOpacity,
+        toValue: isDisabled ? PRESSABLE_ANIMATION.disabledRestOpacity : PRESSABLE_ANIMATION.enabledRestOpacity,
         duration: PRESSABLE_ANIMATION.pressDurationMs,
         useNativeDriver: true,
       }),

@@ -68,6 +68,7 @@ export function PeopleScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [expandedRelationshipId, setExpandedRelationshipId] = useState<number | null>(null);
   const [shouldFocusRelationshipTypeInput, setShouldFocusRelationshipTypeInput] = useState(false);
+  const relationshipTypeFocusTargetOffsetYRef = useRef<number | null>(null);
   const [newNoteInputHeight, setNewNoteInputHeight] = useState<number>(UI_LAYOUT.noteInputMinHeight);
   const [editNoteInputHeight, setEditNoteInputHeight] = useState<number>(UI_LAYOUT.noteInputMinHeight);
   const personDetailScrollRef = useRef<ScrollView | null>(null);
@@ -76,6 +77,7 @@ export function PeopleScreen() {
   const addNoteSectionOffsetYRef = useRef(0);
   const notesSectionOffsetYRef = useRef(0);
   const relationshipSectionOffsetYRef = useRef(0);
+  const relationshipSearchInputRowOffsetYRef = useRef(0);
   const relationshipSearchResultsOffsetYRef = useRef(0);
   const insets = useSafeAreaInsets();
 
@@ -399,13 +401,36 @@ export function PeopleScreen() {
       return;
     }
 
-    requestAnimationFrame(() => {
+    const frameId = requestAnimationFrame(() => {
+      const targetOffsetFromRequest = relationshipTypeFocusTargetOffsetYRef.current;
+      const fallbackTargetOffset = relationshipSearchInputRowOffsetYRef.current;
+      const targetOffset =
+        targetOffsetFromRequest !== null
+          ? targetOffsetFromRequest
+          : fallbackTargetOffset > 0
+            ? fallbackTargetOffset
+            : null;
+
+      if (targetOffset === null) {
+        focusedSectionOffsetYRef.current = null;
+        relationshipTypeFocusTargetOffsetYRef.current = null;
+        setShouldFocusRelationshipTypeInput(false);
+        return;
+      }
+
+      onFocusPersonDetailSection(targetOffset);
       relationshipTypeInputRef.current?.focus();
+      relationshipTypeFocusTargetOffsetYRef.current = null;
       setShouldFocusRelationshipTypeInput(false);
     });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
   }, [
     hasRelationshipSearchTerm,
     hasSelectedRelationshipCandidate,
+    onFocusPersonDetailSection,
     relationshipTypeInput,
     shouldFocusRelationshipTypeInput,
   ]);
@@ -608,6 +633,7 @@ export function PeopleScreen() {
               addNoteSectionOffsetYRef,
               notesSectionOffsetYRef,
               relationshipSectionOffsetYRef,
+              relationshipSearchInputRowOffsetYRef,
               relationshipSearchResultsOffsetYRef,
               hasRelationshipSearchTerm,
               hasSelectedRelationshipCandidate,
@@ -619,7 +645,10 @@ export function PeopleScreen() {
               onConfirmDeletePersonPress,
               onConfirmDeleteNotePress,
               onConfirmDeleteRelationshipPress,
-              onRequestRelationshipTypeFocus: () => setShouldFocusRelationshipTypeInput(true),
+              onRequestRelationshipTypeFocus: (targetOffsetY?: number) => {
+                relationshipTypeFocusTargetOffsetYRef.current = targetOffsetY ?? null;
+                setShouldFocusRelationshipTypeInput(true);
+              },
             }}
           />
         </View>

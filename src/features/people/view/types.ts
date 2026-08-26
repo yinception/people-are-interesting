@@ -49,6 +49,7 @@ export interface PeopleScreenUiProps {
   addNoteSectionOffsetYRef: MutableRefObject<number>;
   notesSectionOffsetYRef: MutableRefObject<number>;
   relationshipSectionOffsetYRef: MutableRefObject<number>;
+  relationshipSearchInputRowOffsetYRef: MutableRefObject<number>;
   relationshipSearchResultsOffsetYRef: MutableRefObject<number>;
   hasRelationshipSearchTerm: boolean;
   hasSelectedRelationshipCandidate: boolean;
@@ -60,7 +61,7 @@ export interface PeopleScreenUiProps {
   onConfirmDeletePersonPress: () => void;
   onConfirmDeleteNotePress: (noteId: number) => void;
   onConfirmDeleteRelationshipPress: (relationshipId: number) => void;
-  onRequestRelationshipTypeFocus: () => void;
+  onRequestRelationshipTypeFocus: (targetOffsetY?: number) => void;
 }
 
 export interface PeopleScreenViewProps {

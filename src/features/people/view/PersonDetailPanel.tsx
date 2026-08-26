@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useRef } from 'react';
+import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import {
   CARD_CLASS,
@@ -83,6 +84,7 @@ interface PersonDetailPanelProps {
     | 'addNoteSectionOffsetYRef'
     | 'notesSectionOffsetYRef'
     | 'relationshipSectionOffsetYRef'
+    | 'relationshipSearchInputRowOffsetYRef'
     | 'relationshipSearchResultsOffsetYRef'
     | 'onFocusPersonDetailSection'
     | 'noteInputMinHeight'
@@ -107,6 +109,7 @@ interface PersonDetailPanelProps {
 const PERSON_ACTIONS_MENU_WIDTH = 160;
 const PERSON_ACTIONS_MENU_MARGIN = 8;
 const PERSON_ACTIONS_MENU_TOP_OFFSET = 6;
+const EDIT_NOTE_FOCUS_SCROLL_OFFSET = 120;
 
 export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
   if (!model.selectedPerson) {
@@ -129,6 +132,13 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
 
   const floatingHeaderBaseHeight = model.isPersonNameEditMode ? 100 : 60;
   const floatingHeaderBottomGap = 0;
+  const noteOffsetByIdRef = useRef<Map<number, number>>(new Map());
+  const relationshipSearchRowRelativeOffsetYRef = useRef(0);
+
+  const updateRelationshipSearchInputOffset = () => {
+    ui.relationshipSearchInputRowOffsetYRef.current =
+      ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
+  };
 
   return (
     <View className="flex-1">
@@ -270,12 +280,24 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
           <View className="mt-2">
             {model.timelineNotes.map((note) => (
               model.editingNoteId === note.id ? (
-                <View className={`mb-2 rounded-lg border px-3 py-3 ${ui.theme.border}`} key={note.id}>
+                <View
+                  className={`mb-2 rounded-lg border px-3 py-3 ${ui.theme.border}`}
+                  key={note.id}
+                  onLayout={(event) => {
+                    noteOffsetByIdRef.current.set(
+                      note.id,
+                      ui.notesSectionOffsetYRef.current + event.nativeEvent.layout.y
+                    );
+                  }}
+                >
                     <TextInput
                       autoFocus
                       value={model.editingNoteContent}
                       onChangeText={model.setEditingNoteContent}
-                      onFocus={() => ui.onFocusPersonDetailSection(ui.notesSectionOffsetYRef.current)}
+                      onFocus={() => {
+                        const noteOffsetY = noteOffsetByIdRef.current.get(note.id) ?? ui.notesSectionOffsetYRef.current;
+                        ui.onFocusPersonDetailSection(Math.max(0, noteOffsetY - EDIT_NOTE_FOCUS_SCROLL_OFFSET));
+                      }}
                       multiline
                       scrollEnabled={false}
                       onSubmitEditing={() => void model.onSaveEditedNotePress()}
@@ -305,7 +327,10 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                       <AnimatedPressable
                         accessibilityRole="button"
                         disabled={model.isEditingNote}
-                        onPress={model.onCancelEditNotePress}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          model.onCancelEditNotePress();
+                        }}
                         className={`rounded-lg px-3 py-2 ${ui.theme.navButton}`}
                       >
                         <Text className={`font-semibold ${ui.theme.navButtonText}`}>Cancel</Text>
@@ -316,6 +341,12 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                 <AnimatedPressable
                   key={note.id}
                   onPress={() => model.onToggleNoteExpanded(note.id)}
+                  onLayout={(event) => {
+                    noteOffsetByIdRef.current.set(
+                      note.id,
+                      ui.notesSectionOffsetYRef.current + event.nativeEvent.layout.y
+                    );
+                  }}
                   className={`mb-2 rounded-lg border px-3 py-3 ${ui.theme.border}`}
                 >
                   <Text className={ui.theme.primaryText}>{note.content}</Text>
@@ -333,7 +364,11 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                     <View className="mt-2 flex-row gap-2">
                       <AnimatedPressable
                         accessibilityRole="button"
-                        onPress={() => model.onStartEditNotePress(note)}
+                        onPress={() => {
+                          const noteOffsetY = noteOffsetByIdRef.current.get(note.id) ?? ui.notesSectionOffsetYRef.current;
+                          ui.onFocusPersonDetailSection(Math.max(0, noteOffsetY - EDIT_NOTE_FOCUS_SCROLL_OFFSET));
+                          model.onStartEditNotePress(note);
+                        }}
                         className={`rounded-lg px-3 py-1.5 ${ui.theme.navButton}`}
                       >
                         <Text className={`font-semibold ${ui.theme.navButtonText}`}>Edit</Text>
@@ -359,6 +394,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
         className={`${CARD_WITH_TOP_MARGIN_CLASS} ${ui.theme.border} ${ui.theme.cardBackground}`}
         onLayout={(event) => {
           ui.relationshipSectionOffsetYRef.current = event.nativeEvent.layout.y;
+          updateRelationshipSearchInputOffset();
         }}
       >
         <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Relationships</Text>
@@ -391,7 +427,8 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                       accessibilityRole="button"
                       onPress={() => {
                         model.onStartEditRelationshipPress(item);
-                        ui.onRequestRelationshipTypeFocus();
+                        const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
+                        ui.onRequestRelationshipTypeFocus(targetOffsetY > 0 ? targetOffsetY : undefined);
                       }}
                       className="rounded-lg bg-indigo-600 px-3 py-1.5"
                     >
@@ -414,11 +451,33 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
           </View>
         )}
 
-        <View className="mt-2 flex-row gap-2">
+        <View
+          className="mt-2 flex-row gap-2"
+          onLayout={(event) => {
+            relationshipSearchRowRelativeOffsetYRef.current = event.nativeEvent.layout.y;
+            updateRelationshipSearchInputOffset();
+          }}
+        >
           <TextInput
             value={model.relationshipSearchTerm}
             onChangeText={model.setRelationshipSearchTerm}
-            onFocus={() => ui.onFocusPersonDetailSection(ui.relationshipSectionOffsetYRef.current)}
+            onFocus={() => {
+              const immediateTargetOffsetY =
+                ui.relationshipSearchInputRowOffsetYRef.current > 0
+                  ? ui.relationshipSearchInputRowOffsetYRef.current
+                  : ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
+
+              ui.onFocusPersonDetailSection(Math.max(0, immediateTargetOffsetY));
+
+              requestAnimationFrame(() => {
+                const refreshedTargetOffsetY =
+                  ui.relationshipSearchInputRowOffsetYRef.current > 0
+                    ? ui.relationshipSearchInputRowOffsetYRef.current
+                    : ui.relationshipSectionOffsetYRef.current + relationshipSearchRowRelativeOffsetYRef.current;
+
+                ui.onFocusPersonDetailSection(Math.max(0, refreshedTargetOffsetY));
+              });
+            }}
             placeholder="Search people to link"
             placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
             className={`flex-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
@@ -456,7 +515,15 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                   return (
                     <AnimatedPressable
                       key={candidate.id}
-                      onPress={() => model.setSelectedRelationshipTargetId(isSelected ? null : candidate.id)}
+                      onPress={() => {
+                        const nextTargetId = isSelected ? null : candidate.id;
+                        model.setSelectedRelationshipTargetId(nextTargetId);
+
+                        if (nextTargetId !== null) {
+                          const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
+                          ui.onRequestRelationshipTypeFocus(targetOffsetY > 0 ? targetOffsetY : undefined);
+                        }
+                      }}
                       className={`mb-2 rounded-lg border px-3 py-2 ${
                         isSelected ? ui.theme.selectedChipBackground : `${ui.theme.border} ${ui.theme.cardBackground}`
                       }`}
@@ -483,11 +550,12 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
               ref={ui.relationshipTypeInputRef}
               value={model.relationshipTypeInput}
               onChangeText={model.setRelationshipTypeInput}
-              onFocus={() =>
-                ui.onFocusPersonDetailSection(
-                  ui.relationshipSearchResultsOffsetYRef.current || ui.relationshipSectionOffsetYRef.current
-                )
-              }
+              onFocus={() => {
+                const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
+                if (targetOffsetY > 0) {
+                  ui.onFocusPersonDetailSection(targetOffsetY);
+                }
+              }}
               onSubmitEditing={() => void model.onCreateRelationshipPress()}
               placeholder="Relationship type (optional)"
               placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}

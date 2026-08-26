@@ -13,13 +13,13 @@ export const PAGE_TRANSITION = {
 } as const;
 
 export const PRESSABLE_ANIMATION = {
-  disabledRestOpacity: 0.55,
+  disabledRestOpacity: 0.5,
   disabledPressedOpacity: 0.5,
   enabledRestOpacity: 1,
   enabledPressedOpacity: 0.8,
   pressedScale: 0.97,
   pressInSpringSpeed: 40,
-  pressOutSpringSpeed: 35,
+  pressOutSpringSpeed: 25,
   pressOutBounciness: 5,
   settleDurationMs: 90,
   pressDurationMs: 80,
@@ -50,7 +50,7 @@ export const MENU_MODAL_BACKDROP_COLOR = {
 export const MODAL_FADE_TRANSITION = {
   initialOpacity: 0,
   fadeInDurationMs: 220,
-  fadeOutDurationMs: 160,
+  fadeOutDurationMs: 120,
   easingPreset: 'smooth',
 } as const;
 
