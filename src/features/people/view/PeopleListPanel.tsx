@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, MENU_MODAL_BACKDROP_COLOR, getPlaceholderTextColor } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';

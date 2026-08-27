@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,18 +66,14 @@ export function PeopleScreen() {
   const [isPeopleSortMenuOpen, setIsPeopleSortMenuOpen] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [expandedRelationshipId, setExpandedRelationshipId] = useState<number | null>(null);
-  const [shouldFocusRelationshipTypeInput, setShouldFocusRelationshipTypeInput] = useState(false);
-  const relationshipTypeFocusTargetOffsetYRef = useRef<number | null>(null);
   const [newNoteInputHeight, setNewNoteInputHeight] = useState<number>(UI_LAYOUT.noteInputMinHeight);
   const [editNoteInputHeight, setEditNoteInputHeight] = useState<number>(UI_LAYOUT.noteInputMinHeight);
   const personDetailScrollRef = useRef<ScrollView | null>(null);
-  const relationshipTypeInputRef = useRef<TextInput | null>(null);
   const focusedSectionOffsetYRef = useRef<number | null>(null);
   const addNoteSectionOffsetYRef = useRef(0);
   const notesSectionOffsetYRef = useRef(0);
   const relationshipSectionOffsetYRef = useRef(0);
   const relationshipSearchInputRowOffsetYRef = useRef(0);
-  const relationshipSearchResultsOffsetYRef = useRef(0);
   const insets = useSafeAreaInsets();
 
   const {
@@ -90,6 +85,7 @@ export function PeopleScreen() {
     editingPersonName,
     editingNoteContent,
     editingNoteId,
+    editingRelationshipId,
     error,
     expandedNoteId,
     hasActiveSearch,
@@ -102,6 +98,7 @@ export function PeopleScreen() {
     isEditingPersonName,
     isPersonNameEditMode,
     isEditingNote,
+    isDatabaseReady,
     isLoading,
     isLoadingDetails,
     isSearching,
@@ -112,6 +109,7 @@ export function PeopleScreen() {
     onBackFromPersonDetailPress,
     onCancelEditNotePress,
     onCancelEditPersonNamePress,
+    onCancelEditRelationshipPress,
     onClearSearchPress,
     onCreatePersonPress,
     onCreateRelationshipPress,
@@ -123,6 +121,7 @@ export function PeopleScreen() {
     onSaveEditedPersonNamePress,
     onSaveEditedNotePress,
     onSeedPress,
+    onSelectRelationshipCandidatePress,
     onStartEditPersonNamePress,
     onStartEditNotePress,
     onSubmitNewNotePress,
@@ -153,14 +152,11 @@ export function PeopleScreen() {
   } = usePeopleScreenModel();
 
   const hasRelationshipSearchTerm = relationshipSearchTerm.trim().length > 0;
-  const hasSelectedRelationshipCandidate =
-    selectedRelationshipTargetId !== null &&
-    relationshipCandidates.some((candidate) => candidate.id === selectedRelationshipTargetId);
 
   const theme = useMemo(() => THEME[themeMode], [themeMode]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (!isDatabaseReady) {
       return;
     }
 
@@ -182,7 +178,7 @@ export function PeopleScreen() {
     return () => {
       isMounted = false;
     };
-  }, [isLoading]);
+  }, [isDatabaseReady]);
 
   const onToggleThemeModePress = useCallback(async () => {
     const previousTheme = themeMode;
@@ -399,45 +395,6 @@ export function PeopleScreen() {
   }, [selectedPerson?.id, relationshipItems.length]);
 
   useEffect(() => {
-    if (!shouldFocusRelationshipTypeInput || !hasRelationshipSearchTerm || !hasSelectedRelationshipCandidate) {
-      return;
-    }
-
-    const frameId = requestAnimationFrame(() => {
-      const targetOffsetFromRequest = relationshipTypeFocusTargetOffsetYRef.current;
-      const fallbackTargetOffset = relationshipSearchInputRowOffsetYRef.current;
-      const targetOffset =
-        targetOffsetFromRequest !== null
-          ? targetOffsetFromRequest
-          : fallbackTargetOffset > 0
-            ? fallbackTargetOffset
-            : null;
-
-      if (targetOffset === null) {
-        focusedSectionOffsetYRef.current = null;
-        relationshipTypeFocusTargetOffsetYRef.current = null;
-        setShouldFocusRelationshipTypeInput(false);
-        return;
-      }
-
-      onFocusPersonDetailSection(targetOffset);
-      relationshipTypeInputRef.current?.focus();
-      relationshipTypeFocusTargetOffsetYRef.current = null;
-      setShouldFocusRelationshipTypeInput(false);
-    });
-
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
-  }, [
-    hasRelationshipSearchTerm,
-    hasSelectedRelationshipCandidate,
-    onFocusPersonDetailSection,
-    relationshipTypeInput,
-    shouldFocusRelationshipTypeInput,
-  ]);
-
-  useEffect(() => {
     if (editingNoteId === null) {
       setEditNoteInputHeight(UI_LAYOUT.noteInputMinHeight);
     }
@@ -550,6 +507,7 @@ export function PeopleScreen() {
               editingPersonName,
               editingNoteContent,
               editingNoteId,
+              editingRelationshipId,
               error,
               expandedNoteId,
               hasActiveSearch,
@@ -562,6 +520,7 @@ export function PeopleScreen() {
               isEditingPersonName,
               isPersonNameEditMode,
               isEditingNote,
+              isDatabaseReady,
               isLoading,
               isLoadingDetails,
               isSearching,
@@ -572,6 +531,7 @@ export function PeopleScreen() {
               onBackFromPersonDetailPress,
               onCancelEditNotePress,
               onCancelEditPersonNamePress,
+              onCancelEditRelationshipPress,
               onClearSearchPress,
               onCreatePersonPress,
               onCreateRelationshipPress,
@@ -583,6 +543,7 @@ export function PeopleScreen() {
               onSaveEditedPersonNamePress,
               onSaveEditedNotePress,
               onSeedPress,
+              onSelectRelationshipCandidatePress,
               onStartEditPersonNamePress,
               onStartEditNotePress,
               onSubmitNewNotePress,
@@ -633,14 +594,11 @@ export function PeopleScreen() {
               editNoteInputHeight,
               setEditNoteInputHeight,
               personDetailScrollRef,
-              relationshipTypeInputRef,
               addNoteSectionOffsetYRef,
               notesSectionOffsetYRef,
               relationshipSectionOffsetYRef,
               relationshipSearchInputRowOffsetYRef,
-              relationshipSearchResultsOffsetYRef,
               hasRelationshipSearchTerm,
-              hasSelectedRelationshipCandidate,
               onFocusPersonDetailSection,
               onToggleThemeModePress,
               onExportDataPress,
@@ -649,10 +607,6 @@ export function PeopleScreen() {
               onConfirmDeletePersonPress,
               onConfirmDeleteNotePress,
               onConfirmDeleteRelationshipPress,
-              onRequestRelationshipTypeFocus: (targetOffsetY?: number) => {
-                relationshipTypeFocusTargetOffsetYRef.current = targetOffsetY ?? null;
-                setShouldFocusRelationshipTypeInput(true);
-              },
             }}
           />
         </View>

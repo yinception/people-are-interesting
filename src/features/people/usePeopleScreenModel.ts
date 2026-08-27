@@ -22,6 +22,8 @@ import {
   type Relationship,
 } from '../../data/database';
 
+import { resolveRelationshipDirection } from './relationshipDirection';
+
 export type PeopleSortOption =
   | 'name_asc'
   | 'name_desc'
@@ -50,6 +52,7 @@ export interface UsePeopleScreenModelResult {
   editingPersonName: string;
   editingNoteContent: string;
   editingNoteId: number | null;
+  editingRelationshipId: number | null;
   error: string | null;
   expandedNoteId: number | null;
   hasActiveSearch: boolean;
@@ -62,6 +65,7 @@ export interface UsePeopleScreenModelResult {
   isEditingPersonName: boolean;
   isPersonNameEditMode: boolean;
   isEditingNote: boolean;
+  isDatabaseReady: boolean;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isSearching: boolean;
@@ -72,6 +76,7 @@ export interface UsePeopleScreenModelResult {
   onBackFromPersonDetailPress: () => void;
   onCancelEditNotePress: () => void;
   onCancelEditPersonNamePress: () => void;
+  onCancelEditRelationshipPress: () => void;
   onClearSearchPress: () => void;
   onCreatePersonPress: () => Promise<void>;
   onCreateRelationshipPress: () => Promise<void>;
@@ -83,6 +88,7 @@ export interface UsePeopleScreenModelResult {
   onSaveEditedPersonNamePress: () => Promise<void>;
   onSaveEditedNotePress: () => Promise<void>;
   onSeedPress: () => Promise<void>;
+  onSelectRelationshipCandidatePress: (personId: number | null) => void;
   onStartEditPersonNamePress: () => void;
   onStartEditNotePress: (note: Note) => void;
   onSubmitNewNotePress: () => Promise<void>;
@@ -114,6 +120,7 @@ export interface UsePeopleScreenModelResult {
 
 export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   const [people, setPeople] = useState<PersonWithLatestNote[]>([]);
+  const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -141,6 +148,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   const [searchResults, setSearchResults] = useState<PersonSearchResult[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null);
   const [selectedRelationshipTargetId, setSelectedRelationshipTargetId] = useState<number | null>(null);
+  const [editingRelationshipId, setEditingRelationshipId] = useState<number | null>(null);
   const [timelineNotes, setTimelineNotes] = useState<Note[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [isPersonNameEditMode, setIsPersonNameEditMode] = useState(false);
@@ -158,6 +166,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setTimelineNotes([]);
       setRelationships([]);
       setSelectedRelationshipTargetId(null);
+      setEditingRelationshipId(null);
       setRelationshipSearchTerm('');
       setRelationshipTypeInput('');
       setReverseRelationshipTypeInput('');
@@ -190,6 +199,8 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     async function setup() {
       try {
         await initializeDatabase();
+        setIsDatabaseReady(true);
+
         const savedSort = await getPeopleSortSetting();
         if (savedSort) {
           setSelectedPeopleSortOptionState(savedSort);
@@ -314,20 +325,13 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     const personNameById = new Map(people.map((person) => [person.id, person.name]));
 
     return relationships.map((relationship) => {
-      const isSelectedPersonA = relationship.person_id_a === selectedPersonId;
-      const otherPersonId = isSelectedPersonA ? relationship.person_id_b : relationship.person_id_a;
+      const direction = resolveRelationshipDirection(relationship, selectedPersonId);
 
       return {
         createdAt: relationship.created_at,
         id: relationship.id,
-        otherPersonId,
-        otherPersonName: personNameById.get(otherPersonId) ?? `Person #${otherPersonId}`,
-        otherPersonRelationshipType: isSelectedPersonA
-          ? relationship.relationship_type
-          : relationship.reverse_relationship_type,
-        selectedPersonRelationshipType: isSelectedPersonA
-          ? relationship.reverse_relationship_type
-          : relationship.relationship_type,
+        otherPersonName: personNameById.get(direction.otherPersonId) ?? `Person #${direction.otherPersonId}`,
+        ...direction,
       };
     });
   }, [people, relationships, selectedPersonId]);
@@ -475,6 +479,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
 
       setSelectedPersonId(null);
       setSelectedRelationshipTargetId(null);
+      setEditingRelationshipId(null);
       setRelationshipTypeInput('');
       setReverseRelationshipTypeInput('');
       setNewNoteContent('');
@@ -537,6 +542,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
       setReverseRelationshipTypeInput('');
       setRelationshipSearchTerm('');
       setSelectedRelationshipTargetId(null);
+      setEditingRelationshipId(null);
       await loadSelectedPersonDetails(selectedPersonId);
     } catch (relationshipError) {
       setError(relationshipError instanceof Error ? relationshipError.message : 'Unknown relationship error');
@@ -552,10 +558,25 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   ]);
 
   const onStartEditRelationshipPress = useCallback((relationship: RelationshipViewItem) => {
+    setEditingRelationshipId(relationship.id);
     setSelectedRelationshipTargetId(relationship.otherPersonId);
     setRelationshipTypeInput(relationship.otherPersonRelationshipType ?? '');
     setReverseRelationshipTypeInput(relationship.selectedPersonRelationshipType ?? '');
-    setRelationshipSearchTerm(relationship.otherPersonName);
+    setRelationshipSearchTerm('');
+  }, []);
+
+  const onCancelEditRelationshipPress = useCallback(() => {
+    setEditingRelationshipId(null);
+    setSelectedRelationshipTargetId(null);
+    setRelationshipTypeInput('');
+    setReverseRelationshipTypeInput('');
+  }, []);
+
+  const onSelectRelationshipCandidatePress = useCallback((personId: number | null) => {
+    setEditingRelationshipId(null);
+    setSelectedRelationshipTargetId(personId);
+    setRelationshipTypeInput('');
+    setReverseRelationshipTypeInput('');
   }, []);
 
   const onDeleteRelationshipPress = useCallback(
@@ -586,6 +607,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     (personId: number) => {
       setSelectedPersonId(personId);
       setSelectedRelationshipTargetId(null);
+      setEditingRelationshipId(null);
       setRelationshipTypeInput('');
       setReverseRelationshipTypeInput('');
       setRelationshipSearchTerm('');
@@ -609,6 +631,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
   const onBackFromPersonDetailPress = useCallback(() => {
     setSelectedPersonId(null);
     setSelectedRelationshipTargetId(null);
+    setEditingRelationshipId(null);
     setRelationshipSearchTerm('');
     setRelationshipTypeInput('');
     setReverseRelationshipTypeInput('');
@@ -640,6 +663,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     editingPersonName,
     editingNoteContent,
     editingNoteId,
+    editingRelationshipId,
     error,
     expandedNoteId,
     hasActiveSearch,
@@ -652,6 +676,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     isEditingPersonName,
     isPersonNameEditMode,
     isEditingNote,
+    isDatabaseReady,
     isLoading,
     isLoadingDetails,
     isSearching,
@@ -662,6 +687,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     onBackFromPersonDetailPress,
     onCancelEditNotePress,
     onCancelEditPersonNamePress,
+    onCancelEditRelationshipPress,
     onClearSearchPress,
     onCreatePersonPress,
     onCreateRelationshipPress,
@@ -673,6 +699,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     onSaveEditedPersonNamePress,
     onSaveEditedNotePress,
     onSeedPress,
+    onSelectRelationshipCandidatePress,
     onStartEditPersonNamePress,
     onStartEditNotePress,
     onSubmitNewNotePress,

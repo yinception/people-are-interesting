@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
+  Keyboard,
   Pressable,
   type GestureResponderEvent,
   type PressableProps,
@@ -12,6 +13,8 @@ import { PRESSABLE_ANIMATION } from '../constants';
 
 interface AnimatedPressableProps extends PressableProps {
   className?: string;
+  /** Set false for controls that immediately focus another input. */
+  dismissKeyboardOnPress?: boolean;
 }
 
 type PressableStyle = AnimatedPressableProps['style'];
@@ -26,6 +29,8 @@ function resolveStyle(style: PressableStyle, state: PressableStateCallbackType):
 
 export function AnimatedPressable({
   disabled = false,
+  dismissKeyboardOnPress = true,
+  onPress,
   onPressIn,
   onPressOut,
   style,
@@ -113,10 +118,19 @@ export function AnimatedPressable({
     onPressOut?.(event);
   };
 
+  const handlePress = (event: GestureResponderEvent) => {
+    if (dismissKeyboardOnPress) {
+      Keyboard.dismiss();
+    }
+
+    onPress?.(event);
+  };
+
   return (
     <Pressable
       {...props}
       disabled={disabled}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={undefined}

@@ -34,6 +34,9 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
 - Labels are always shown from the perspective of the person you are viewing.
 - Re-using the same pair updates the existing relationship instead of creating duplicates.
 - View, edit, and delete relationships.
+- Link and edit forms render inline in the card being acted on:
+  - selecting a search result expands that result card
+  - editing an existing relationship expands that relationship card
 
 ### 4. Search
 - Main People search supports matching:

@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { ScrollView, TextInput } from 'react-native';
+import type { ScrollView } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 
 export type ThemeMode = 'light' | 'dark';
@@ -45,14 +45,11 @@ export interface PeopleScreenUiProps {
   editNoteInputHeight: number;
   setEditNoteInputHeight: Dispatch<SetStateAction<number>>;
   personDetailScrollRef: MutableRefObject<ScrollView | null>;
-  relationshipTypeInputRef: MutableRefObject<TextInput | null>;
   addNoteSectionOffsetYRef: MutableRefObject<number>;
   notesSectionOffsetYRef: MutableRefObject<number>;
   relationshipSectionOffsetYRef: MutableRefObject<number>;
   relationshipSearchInputRowOffsetYRef: MutableRefObject<number>;
-  relationshipSearchResultsOffsetYRef: MutableRefObject<number>;
   hasRelationshipSearchTerm: boolean;
-  hasSelectedRelationshipCandidate: boolean;
   onFocusPersonDetailSection: (offsetY: number) => void;
   onToggleThemeModePress: () => Promise<void>;
   onExportDataPress: () => Promise<void>;
@@ -61,7 +58,6 @@ export interface PeopleScreenUiProps {
   onConfirmDeletePersonPress: () => void;
   onConfirmDeleteNotePress: (noteId: number) => void;
   onConfirmDeleteRelationshipPress: (relationshipId: number) => void;
-  onRequestRelationshipTypeFocus: (targetOffsetY?: number) => void;
 }
 
 export interface PeopleScreenViewProps {

@@ -12,7 +12,8 @@ import type { PeopleScreenViewProps } from './view/types';
 export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
   const listFadeAnim = useRef(new Animated.Value(1)).current;
   const detailFadeAnim = useRef(new Animated.Value(0)).current;
-  const isPersonDetailVisible = Boolean(model.selectedPerson);
+  const selectedPersonId = model.selectedPerson?.id ?? null;
+  const isPersonDetailVisible = selectedPersonId !== null;
 
   useEffect(() => {
     const activeFadeAnim = isPersonDetailVisible ? detailFadeAnim : listFadeAnim;
@@ -38,7 +39,7 @@ export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
       cancelAnimationFrame(frameId);
       animation?.stop();
     };
-  }, [detailFadeAnim, isPersonDetailVisible, listFadeAnim]);
+  }, [detailFadeAnim, isPersonDetailVisible, listFadeAnim, selectedPersonId]);
 
   const errorMessage = model.error ? (
     <Text className="mb-2 mt-2 text-red-700">Error: {model.error}</Text>

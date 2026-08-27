@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import type { PersonWithLatestNote } from '../../../data/database';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import {
   CARD_CLASS,
@@ -11,6 +12,7 @@ import {
 } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';
 import { FadeModal } from './FadeModal';
+import { RelationshipLinkForm } from './RelationshipLinkForm';
 import type { PeopleScreenUiProps } from './types';
 import { useAnchoredMenu } from './useAnchoredMenu';
 
@@ -75,6 +77,9 @@ interface PersonDetailPanelProps {
     | 'relationshipItems'
     | 'onPersonPress'
     | 'onStartEditRelationshipPress'
+    | 'onCancelEditRelationshipPress'
+    | 'onSelectRelationshipCandidatePress'
+    | 'editingRelationshipId'
     | 'isDeletingRelationship'
   >;
   ui: Pick<
@@ -87,7 +92,6 @@ interface PersonDetailPanelProps {
     | 'notesSectionOffsetYRef'
     | 'relationshipSectionOffsetYRef'
     | 'relationshipSearchInputRowOffsetYRef'
-    | 'relationshipSearchResultsOffsetYRef'
     | 'onFocusPersonDetailSection'
     | 'noteInputMinHeight'
     | 'newNoteInputHeight'
@@ -99,11 +103,8 @@ interface PersonDetailPanelProps {
     | 'onConfirmDeletePersonPress'
     | 'onConfirmDeleteNotePress'
     | 'hasRelationshipSearchTerm'
-    | 'hasSelectedRelationshipCandidate'
-    | 'relationshipTypeInputRef'
     | 'expandedRelationshipId'
     | 'setExpandedRelationshipId'
-    | 'onRequestRelationshipTypeFocus'
     | 'onConfirmDeleteRelationshipPress'
   >;
 }
@@ -135,10 +136,11 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
   const floatingHeaderBaseHeight = model.isPersonNameEditMode ? 100 : 60;
   const floatingHeaderBottomGap = 0;
   const selectedPersonName = model.selectedPerson.name;
-  const selectedRelationshipCandidateName =
-    model.relationshipCandidates.find((candidate) => candidate.id === model.selectedRelationshipTargetId)?.name ??
-    model.relationshipSearchTerm.trim();
+  const selectedRelationshipCandidate =
+    model.relationshipCandidates.find((candidate) => candidate.id === model.selectedRelationshipTargetId) ?? null;
   const noteOffsetByIdRef = useRef<Map<number, number>>(new Map());
+  const relationshipOffsetByIdRef = useRef<Map<number, number>>(new Map());
+  const relationshipListRelativeOffsetYRef = useRef(0);
   const relationshipSearchRowRelativeOffsetYRef = useRef(0);
 
   const updateRelationshipSearchInputOffset = () => {
@@ -159,6 +161,63 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
       ui.onFocusPersonDetailSection(ui.relationshipSearchInputRowOffsetYRef.current);
     }
   };
+
+  const resolveRelationshipCardOffsetY = (relationshipId: number) =>
+    Math.max(
+      0,
+      ui.relationshipSectionOffsetYRef.current +
+        relationshipListRelativeOffsetYRef.current +
+        (relationshipOffsetByIdRef.current.get(relationshipId) ?? 0)
+    );
+
+  const renderRelationshipCandidateCard = (candidate: PersonWithLatestNote, isSelected: boolean) => (
+    <View
+      key={candidate.id}
+      className={`mb-2 overflow-hidden rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
+    >
+      <AnimatedPressable
+        className={`px-3 py-2 ${isSelected ? ui.theme.selectedChipBackground : ''}`}
+        dismissKeyboardOnPress={false}
+        onPress={() => {
+          model.onSelectRelationshipCandidatePress(isSelected ? null : candidate.id);
+
+          if (!isSelected) {
+            focusRelationshipSection();
+          }
+        }}
+      >
+        <Text className={isSelected ? 'font-semibold text-white' : ui.theme.primaryText}>{candidate.name}</Text>
+        <Text
+          className={`mt-0.5 text-xs ${isSelected ? 'text-white' : ui.theme.secondaryText}`}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {candidate.latest_note_content ?? 'No notes yet'}
+        </Text>
+      </AnimatedPressable>
+
+      {isSelected ? (
+        <View className="px-3 pb-3 pt-3">
+          <RelationshipLinkForm
+            theme={ui.theme}
+            themeMode={ui.themeMode}
+            personName={selectedPersonName}
+            otherPersonName={candidate.name}
+            relationshipType={model.relationshipTypeInput}
+            onChangeRelationshipType={model.setRelationshipTypeInput}
+            reverseRelationshipType={model.reverseRelationshipTypeInput}
+            onChangeReverseRelationshipType={model.setReverseRelationshipTypeInput}
+            isSaving={model.isCreatingRelationship}
+            canSave={model.canSaveRelationship}
+            submitLabel="Link"
+            onSubmit={model.onCreateRelationshipPress}
+            onCancel={() => model.onSelectRelationshipCandidatePress(null)}
+            onInputFocus={focusRelationshipSection}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
 
   return (
     <View className="flex-1">
@@ -214,6 +273,8 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
             <Pressable
               className="flex-1 flex-row items-center"
               onPress={() => {
+                Keyboard.dismiss();
+
                 if (ui.isPersonActionsMenuOpen) {
                   ui.setIsPersonActionsMenuOpen(false);
                 }
@@ -347,10 +408,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                       <AnimatedPressable
                         accessibilityRole="button"
                         disabled={model.isEditingNote}
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          model.onCancelEditNotePress();
-                        }}
+                        onPress={model.onCancelEditNotePress}
                         className={`rounded-lg px-3 py-2 ${ui.theme.navButton}`}
                       >
                         <Text className={`font-semibold ${ui.theme.navButtonText}`}>Cancel</Text>
@@ -384,6 +442,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                     <View className="mt-2 flex-row gap-2">
                       <AnimatedPressable
                         accessibilityRole="button"
+                        dismissKeyboardOnPress={false}
                         onPress={() => {
                           const noteOffsetY = noteOffsetByIdRef.current.get(note.id) ?? ui.notesSectionOffsetYRef.current;
                           ui.onFocusPersonDetailSection(Math.max(0, noteOffsetY - EDIT_NOTE_FOCUS_SCROLL_OFFSET));
@@ -420,190 +479,169 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
         <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Relationships</Text>
         
         {model.relationshipItems.length === 0 ? null : (
-          <View className="mt-2">
-            {model.relationshipItems.map((item) => (
-              <AnimatedPressable
-                className={`mb-2 rounded-lg border px-3 py-2 ${ui.theme.border}`}
-                key={item.id}
-                onPress={() => {
-                  ui.setExpandedRelationshipId((current) => (current === item.id ? null : item.id));
-                }}
-              >
-                <Text className={ui.theme.primaryText}>
-                  {item.otherPersonName}
-                  {item.otherPersonRelationshipType ? ` (${item.otherPersonRelationshipType})` : ''}
-                </Text>
-                {!item.otherPersonRelationshipType && item.selectedPersonRelationshipType ? (
-                  <Text className={`mt-0.5 text-xs ${ui.theme.tertiaryText}`}>
-                    {`${selectedPersonName} is ${item.otherPersonName}'s ${item.selectedPersonRelationshipType}`}
-                  </Text>
-                ) : null}
+          <View
+            className="mt-2"
+            onLayout={(event) => {
+              relationshipListRelativeOffsetYRef.current = event.nativeEvent.layout.y;
+            }}
+          >
+            {model.relationshipItems.map((item) => {
+              const isEditingRelationship = model.editingRelationshipId === item.id;
 
-                {ui.expandedRelationshipId === item.id ? (
-                  <View className="mt-2 flex-row gap-2">
-                    <AnimatedPressable
-                      accessibilityRole="button"
-                      onPress={() => model.onPersonPress(item.otherPersonId)}
-                      className={`rounded-lg px-3 py-1.5 ${ui.theme.navButton}`}
-                    >
-                      <Text className={`font-semibold ${ui.theme.navButtonText}`}>View</Text>
-                    </AnimatedPressable>
-                    <AnimatedPressable
-                      accessibilityRole="button"
-                      onPress={() => {
-                        model.onStartEditRelationshipPress(item);
-                        const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
-                        ui.onRequestRelationshipTypeFocus(targetOffsetY > 0 ? targetOffsetY : undefined);
-                      }}
-                      className="rounded-lg bg-indigo-600 px-3 py-1.5"
-                    >
-                      <Text className="font-semibold text-white">Edit</Text>
-                    </AnimatedPressable>
-                    <AnimatedPressable
-                      accessibilityRole="button"
-                      disabled={model.isDeletingRelationship}
-                      onPress={() => ui.onConfirmDeleteRelationshipPress(item.id)}
-                      className="rounded-lg bg-rose-600 px-3 py-1.5"
-                    >
-                      <Text className="font-semibold text-white">
-                        {model.isDeletingRelationship ? 'Deleting...' : 'Delete'}
+              return (
+                <View
+                  key={item.id}
+                  className={`mb-2 overflow-hidden rounded-lg border ${ui.theme.border}`}
+                  onLayout={(event) => {
+                    relationshipOffsetByIdRef.current.set(item.id, event.nativeEvent.layout.y);
+                  }}
+                >
+                  <AnimatedPressable
+                    className="px-3 py-2"
+                    onPress={() => {
+                      ui.setExpandedRelationshipId((current) => (current === item.id ? null : item.id));
+                    }}
+                  >
+                    <Text className={ui.theme.primaryText}>
+                      {item.otherPersonName}
+                      {item.otherPersonRelationshipType ? ` (${item.otherPersonRelationshipType})` : ''}
+                    </Text>
+                    {!item.otherPersonRelationshipType && item.selectedPersonRelationshipType ? (
+                      <Text className={`mt-0.5 text-xs ${ui.theme.tertiaryText}`}>
+                        {`${selectedPersonName} is ${item.otherPersonName}'s ${item.selectedPersonRelationshipType}`}
                       </Text>
-                    </AnimatedPressable>
-                  </View>
-                ) : null}
-              </AnimatedPressable>
-            ))}
+                    ) : null}
+
+                    {ui.expandedRelationshipId === item.id && !isEditingRelationship ? (
+                      <View className="mt-2 flex-row gap-2">
+                        <AnimatedPressable
+                          accessibilityRole="button"
+                          onPress={() => model.onPersonPress(item.otherPersonId)}
+                          className={`rounded-lg px-3 py-1.5 ${ui.theme.navButton}`}
+                        >
+                          <Text className={`font-semibold ${ui.theme.navButtonText}`}>View</Text>
+                        </AnimatedPressable>
+                        <AnimatedPressable
+                          accessibilityRole="button"
+                          dismissKeyboardOnPress={false}
+                          onPress={() => {
+                            model.onStartEditRelationshipPress(item);
+                            ui.onFocusPersonDetailSection(resolveRelationshipCardOffsetY(item.id));
+                          }}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5"
+                        >
+                          <Text className="font-semibold text-white">Edit</Text>
+                        </AnimatedPressable>
+                        <AnimatedPressable
+                          accessibilityRole="button"
+                          disabled={model.isDeletingRelationship}
+                          onPress={() => ui.onConfirmDeleteRelationshipPress(item.id)}
+                          className="rounded-lg bg-rose-600 px-3 py-1.5"
+                        >
+                          <Text className="font-semibold text-white">
+                            {model.isDeletingRelationship ? 'Deleting...' : 'Delete'}
+                          </Text>
+                        </AnimatedPressable>
+                      </View>
+                    ) : null}
+                  </AnimatedPressable>
+
+                  {isEditingRelationship ? (
+                    <View className="px-3 pb-3">
+                      <RelationshipLinkForm
+                        theme={ui.theme}
+                        themeMode={ui.themeMode}
+                        personName={selectedPersonName}
+                        otherPersonName={item.otherPersonName}
+                        relationshipType={model.relationshipTypeInput}
+                        onChangeRelationshipType={model.setRelationshipTypeInput}
+                        reverseRelationshipType={model.reverseRelationshipTypeInput}
+                        onChangeReverseRelationshipType={model.setReverseRelationshipTypeInput}
+                        isSaving={model.isCreatingRelationship}
+                        canSave={model.canSaveRelationship}
+                        submitLabel="Save"
+                        onSubmit={() => {
+                          ui.setExpandedRelationshipId(null);
+                          void model.onCreateRelationshipPress();
+                        }}
+                        onCancel={() => {
+                          ui.setExpandedRelationshipId(null);
+                          model.onCancelEditRelationshipPress();
+                        }}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         )}
 
-        <View
-          className="mt-2 flex-row gap-2"
-          onLayout={(event) => {
-            relationshipSearchRowRelativeOffsetYRef.current = event.nativeEvent.layout.y;
-            updateRelationshipSearchInputOffset();
-          }}
-        >
-          <TextInput
-            value={model.relationshipSearchTerm}
-            onChangeText={model.setRelationshipSearchTerm}
-            onFocus={() => {
-              ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
-
-              // Re-align once layout settles after the results list appears.
-              requestAnimationFrame(() => {
-                ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
-              });
-            }}
-            placeholder="Search people to link"
-            placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
-            className={`flex-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
-          />
-          <AnimatedPressable
-            accessibilityRole="button"
-            onPress={() => {
-              model.setRelationshipSearchTerm('');
-              model.setSelectedRelationshipTargetId(null);
-              model.setRelationshipTypeInput('');
-              model.setReverseRelationshipTypeInput('');
-            }}
-            disabled={!ui.hasRelationshipSearchTerm}
-            className={`h-11 items-center justify-center rounded-xl px-3 ${
-              !ui.hasRelationshipSearchTerm ? 'bg-slate-400' : ui.theme.navButton
-            }`}
-          >
-            <Text className={`font-semibold ${ui.theme.navButtonText}`}>Clear</Text>
-          </AnimatedPressable>
-        </View>
-        {ui.hasRelationshipSearchTerm ? (
-          <View
-            className={`mt-2 rounded-xl border p-2 ${ui.theme.border} ${ui.theme.inputBackground}`}
-            onLayout={(event) => {
-              ui.relationshipSearchResultsOffsetYRef.current =
-                ui.relationshipSectionOffsetYRef.current + event.nativeEvent.layout.y;
-            }}
-          >
-            <Text className={`mb-2 text-xs font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Search Results</Text>
-            <ScrollView className="max-h-40" nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
-              {model.relationshipCandidates.length === 0 ? (
-                <Text className={`${ui.theme.tertiaryText}`}>No matching people.</Text>
-              ) : (
-                model.relationshipCandidates.map((candidate) => {
-                  const isSelected = candidate.id === model.selectedRelationshipTargetId;
-                  return (
-                    <AnimatedPressable
-                      key={candidate.id}
-                      onPress={() => {
-                        const nextTargetId = isSelected ? null : candidate.id;
-                        model.setSelectedRelationshipTargetId(nextTargetId);
-
-                        if (nextTargetId !== null) {
-                          const targetOffsetY = ui.relationshipSearchInputRowOffsetYRef.current;
-                          ui.onRequestRelationshipTypeFocus(targetOffsetY > 0 ? targetOffsetY : undefined);
-                        }
-                      }}
-                      className={`mb-2 rounded-lg border px-3 py-2 ${
-                        isSelected ? ui.theme.selectedChipBackground : `${ui.theme.border} ${ui.theme.cardBackground}`
-                      }`}
-                    >
-                      <Text className={isSelected ? 'font-semibold text-white' : ui.theme.primaryText}>{candidate.name}</Text>
-                      <Text
-                        className={`mt-0.5 text-xs ${isSelected ? 'text-white' : ui.theme.secondaryText}`}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {candidate.latest_note_content ?? 'No notes yet'}
-                      </Text>
-                    </AnimatedPressable>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {ui.hasRelationshipSearchTerm && ui.hasSelectedRelationshipCandidate ? (
-          <View className="mt-2">
-            <Text className={`text-xs ${ui.theme.tertiaryText}`}>
-              {`${selectedRelationshipCandidateName} is ${selectedPersonName}'s`}
-            </Text>
-            <TextInput
-              ref={ui.relationshipTypeInputRef}
-              value={model.relationshipTypeInput}
-              onChangeText={model.setRelationshipTypeInput}
-              onFocus={focusRelationshipSection}
-              placeholder="Relationship type (optional)"
-              placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
-              editable={!model.isCreatingRelationship}
-              returnKeyType="next"
-              className={`mt-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
-            />
-
-            <Text className={`mt-3 text-xs ${ui.theme.tertiaryText}`}>
-              {`${selectedPersonName} is ${selectedRelationshipCandidateName}'s`}
-            </Text>
-            <TextInput
-              value={model.reverseRelationshipTypeInput}
-              onChangeText={model.setReverseRelationshipTypeInput}
-              onFocus={focusRelationshipSection}
-              onSubmitEditing={() => void model.onCreateRelationshipPress()}
-              placeholder="Relationship type (optional)"
-              placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
-              editable={!model.isCreatingRelationship}
-              returnKeyType="done"
-              className={`mt-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
-            />
-
-            <AnimatedPressable
-              accessibilityRole="button"
-              disabled={!model.canSaveRelationship || model.isCreatingRelationship}
-              onPress={model.onCreateRelationshipPress}
-              className={`mt-3 h-11 items-center justify-center rounded-xl px-4 ${
-                !model.canSaveRelationship || model.isCreatingRelationship ? 'bg-slate-400' : 'bg-teal-600'
-              }`}
+        {model.editingRelationshipId === null ? (
+          <>
+            <View
+              className="mt-2 flex-row gap-2"
+              onLayout={(event) => {
+                relationshipSearchRowRelativeOffsetYRef.current = event.nativeEvent.layout.y;
+                updateRelationshipSearchInputOffset();
+              }}
             >
-              <Text className="font-semibold text-white">{model.isCreatingRelationship ? 'Saving...' : 'Link'}</Text>
-            </AnimatedPressable>
-          </View>
+              <TextInput
+                value={model.relationshipSearchTerm}
+                onChangeText={model.setRelationshipSearchTerm}
+                onFocus={() => {
+                  ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
+
+                  // Re-align once layout settles after the results list appears.
+                  requestAnimationFrame(() => {
+                    ui.onFocusPersonDetailSection(resolveRelationshipSearchOffsetY());
+                  });
+                }}
+                placeholder="Search people to link"
+                placeholderTextColor={getPlaceholderTextColor(ui.themeMode)}
+                className={`flex-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
+              />
+              <AnimatedPressable
+                accessibilityRole="button"
+                onPress={() => {
+                  model.setRelationshipSearchTerm('');
+                  model.onSelectRelationshipCandidatePress(null);
+                }}
+                disabled={!ui.hasRelationshipSearchTerm}
+                className={`h-11 items-center justify-center rounded-xl px-3 ${
+                  !ui.hasRelationshipSearchTerm ? 'bg-slate-400' : ui.theme.navButton
+                }`}
+              >
+                <Text className={`font-semibold ${ui.theme.navButtonText}`}>Clear</Text>
+              </AnimatedPressable>
+            </View>
+
+            {ui.hasRelationshipSearchTerm ? (
+              <View className={`mt-2 rounded-xl border p-2 ${ui.theme.border} ${ui.theme.inputBackground}`}>
+                <Text className={`mb-2 text-xs font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>
+                  Search Results
+                </Text>
+                {selectedRelationshipCandidate ? (
+                  renderRelationshipCandidateCard(selectedRelationshipCandidate, true)
+                ) : (
+                  <ScrollView
+                    className="max-h-40"
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator
+                  >
+                    {model.relationshipCandidates.length === 0 ? (
+                      <Text className={`${ui.theme.tertiaryText}`}>No matching people.</Text>
+                    ) : (
+                      model.relationshipCandidates.map((candidate) =>
+                        renderRelationshipCandidateCard(candidate, false)
+                      )
+                    )}
+                  </ScrollView>
+                )}
+              </View>
+            ) : null}
+          </>
         ) : null}
       </View>
 
