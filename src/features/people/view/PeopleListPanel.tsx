@@ -3,6 +3,7 @@ import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, MENU_MODAL_BACKDROP_COLOR, getPlaceholderTextColor } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';
 import { FadeModal } from './FadeModal';
+import { PersonListRow } from './PersonListRow';
 import type { PeopleScreenUiProps } from './types';
 import { useAnchoredMenu } from './useAnchoredMenu';
 
@@ -91,28 +92,28 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
         </View>
       </View>
 
+      <View className="mb-3 flex-row items-center justify-between" style={{ zIndex: LAYER_Z_INDEX.headerRow }}>
+        <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>People ({model.peopleCountLabel})</Text>
+        <View className="relative flex-row items-center gap-2" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
+          {model.isSearching ? <Text className={ui.theme.secondaryText}>Searching...</Text> : null}
+          <View onLayout={onSortTriggerLayout}>
+            <AnimatedPressable
+              accessibilityRole="button"
+              onPress={toggleSortMenu}
+              className={`flex-row items-center rounded-lg px-3 py-2 ${ui.theme.navButton}`}
+            >
+              <Text className={`font-semibold ${ui.theme.navButtonText}`}>≡</Text>
+              <Text className={`ml-1 font-semibold ${ui.theme.navButtonText}`}>▾</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+      </View>
+
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 12 + ui.keyboardLift }}
       >
-        <View className="mb-3 mt-4 flex-row items-center justify-between" style={{ zIndex: LAYER_Z_INDEX.headerRow }}>
-          <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>People ({model.peopleCountLabel})</Text>
-          <View className="relative flex-row items-center gap-2" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
-            {model.isSearching ? <Text className={ui.theme.secondaryText}>Searching...</Text> : null}
-            <View onLayout={onSortTriggerLayout}>
-              <AnimatedPressable
-                accessibilityRole="button"
-                onPress={toggleSortMenu}
-                className={`flex-row items-center rounded-lg px-3 py-2 ${ui.theme.navButton}`}
-              >
-                <Text className={`font-semibold ${ui.theme.navButtonText}`}>≡</Text>
-                <Text className={`ml-1 font-semibold ${ui.theme.navButtonText}`}>▾</Text>
-              </AnimatedPressable>
-            </View>
-          </View>
-        </View>
-
         {model.isLoading ? (
           <View className="mb-4 flex-row items-center gap-2">
             <ActivityIndicator />
@@ -128,21 +129,15 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
               )
             ) : (
               model.visiblePeople.map((person) => (
-                <AnimatedPressable
-                  className={`mb-2 rounded-xl border p-3 ${ui.theme.border}`}
+                <PersonListRow
                   key={person.id}
-                  onPress={() => model.onPersonPress(person.id)}
-                >
-                  <Text className={`text-base font-semibold ${ui.theme.primaryText}`}>{person.name}</Text>
-                  <Text className={`mt-1 ${ui.theme.secondaryText}`} numberOfLines={1} ellipsizeMode="tail">
-                    {person.latest_note_content ?? 'No notes yet'}
-                  </Text>
-                  {model.hasActiveSearch ? (
-                    <Text className={`mt-1 text-xs ${ui.theme.tertiaryText}`}>
-                      Matched notes: {model.matchedNoteCountByPersonId.get(person.id) ?? 0}
-                    </Text>
-                  ) : null}
-                </AnimatedPressable>
+                  person={person}
+                  theme={ui.theme}
+                  matchedNoteCount={
+                    model.hasActiveSearch ? model.matchedNoteCountByPersonId.get(person.id) ?? 0 : null
+                  }
+                  onPress={model.onPersonPress}
+                />
               ))
             )}
           </View>

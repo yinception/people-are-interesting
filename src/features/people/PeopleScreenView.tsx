@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, ScrollView, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PeopleListPanel } from './view/PeopleListPanel';
 import { PersonDetailPanel } from './view/PersonDetailPanel';
 import { ScreenHeader } from './view/ScreenHeader';
@@ -10,16 +10,22 @@ import { PAGE_TRANSITION, SETTINGS_MODAL_BACKDROP_COLOR } from './constants';
 import type { PeopleScreenViewProps } from './view/types';
 
 export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
-  const pageFadeAnim = useRef(new Animated.Value(1)).current;
-  const pageKey = model.selectedPerson ? 'detail' : 'list';
+  const listFadeAnim = useRef(new Animated.Value(1)).current;
+  const detailFadeAnim = useRef(new Animated.Value(0)).current;
+  const isPersonDetailVisible = Boolean(model.selectedPerson);
 
   useEffect(() => {
-    pageFadeAnim.stopAnimation();
-    pageFadeAnim.setValue(PAGE_TRANSITION.fadeStartOpacity);
+    const activeFadeAnim = isPersonDetailVisible ? detailFadeAnim : listFadeAnim;
+    const inactiveFadeAnim = isPersonDetailVisible ? listFadeAnim : detailFadeAnim;
+
+    activeFadeAnim.stopAnimation();
+    inactiveFadeAnim.stopAnimation();
+    inactiveFadeAnim.setValue(0);
+    activeFadeAnim.setValue(PAGE_TRANSITION.fadeStartOpacity);
 
     let animation: Animated.CompositeAnimation | null = null;
     const frameId = requestAnimationFrame(() => {
-      animation = Animated.timing(pageFadeAnim, {
+      animation = Animated.timing(activeFadeAnim, {
         toValue: 1,
         duration: PAGE_TRANSITION.fadeDurationMs,
         useNativeDriver: true,
@@ -32,18 +38,35 @@ export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
       cancelAnimationFrame(frameId);
       animation?.stop();
     };
-  }, [pageKey, pageFadeAnim]);
+  }, [detailFadeAnim, isPersonDetailVisible, listFadeAnim]);
+
+  const errorMessage = model.error ? (
+    <Text className="mb-2 mt-2 text-red-700">Error: {model.error}</Text>
+  ) : null;
 
   return (
     <View className="relative flex-1">
       <ScreenHeader ui={ui} />
 
-      <View className={`flex-1 rounded-2xl p-3 ${ui.theme.panelBackground}`}>
-        <Animated.View key={pageKey} style={{ flex: 1, opacity: pageFadeAnim }}>
-          {!model.selectedPerson ? <PeopleListPanel model={model} ui={ui} /> : <PersonDetailPanel model={model} ui={ui} />}
+      <View className={`flex-1 overflow-hidden rounded-2xl ${ui.theme.panelBackground}`}>
+        {/* The list stays mounted so its rows and scroll position survive navigation. */}
+        <Animated.View
+          className="p-3"
+          style={[StyleSheet.absoluteFill, { opacity: listFadeAnim }]}
+          pointerEvents={isPersonDetailVisible ? 'none' : 'auto'}
+        >
+          <PeopleListPanel model={model} ui={ui} />
 
-          {model.error ? <Text className="mb-2 mt-2 text-red-700">Error: {model.error}</Text> : null}
+          {errorMessage}
         </Animated.View>
+
+        {isPersonDetailVisible ? (
+          <Animated.View className="p-3" style={[StyleSheet.absoluteFill, { opacity: detailFadeAnim }]}>
+            <PersonDetailPanel model={model} ui={ui} />
+
+            {errorMessage}
+          </Animated.View>
+        ) : null}
       </View>
 
       <FadeModal
