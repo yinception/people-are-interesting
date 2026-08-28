@@ -26,7 +26,7 @@ export interface Relationship {
 }
 
 export interface PersonListItem extends Person {
-  latest_note_content: string | null;
+  first_note_content: string | null;
 }
 
 export interface PersonSearchResult {

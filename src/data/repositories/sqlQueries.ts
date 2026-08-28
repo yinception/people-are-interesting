@@ -19,9 +19,9 @@ export const LIST_PEOPLE_WITH_LATEST_NOTE_SQL = `
       SELECT n.content
       FROM notes n
       WHERE n.person_id = p.id
-      ORDER BY n.created_at DESC, n.id DESC
+      ORDER BY n.created_at ASC, n.id ASC
       LIMIT 1
-    ) AS latest_note_content
+    ) AS first_note_content
   FROM people p
   ORDER BY COALESCE(p.updated_at, p.created_at) DESC, p.id DESC
 `;

@@ -182,7 +182,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          {candidate.latest_note_content ?? 'No notes yet'}
+          {candidate.first_note_content ?? 'No notes yet'}
         </Text>
       </AnimatedPressable>
 
