@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { PersonWithLatestNote } from '../../../data/database';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
+import { MAX_RELATIONSHIP_CANDIDATE_RESULTS } from '../usePeopleScreenModel';
 import {
   CARD_CLASS,
   CARD_WITH_TOP_MARGIN_CLASS,
@@ -67,6 +68,7 @@ interface PersonDetailPanelProps {
     | 'setSelectedRelationshipTargetId'
     | 'setRelationshipTypeInput'
     | 'relationshipCandidates'
+    | 'hasMoreRelationshipCandidates'
     | 'selectedRelationshipTargetId'
     | 'relationshipTypeInput'
     | 'reverseRelationshipTypeInput'
@@ -624,20 +626,28 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                 {selectedRelationshipCandidate ? (
                   renderRelationshipCandidateCard(selectedRelationshipCandidate, true)
                 ) : (
-                  <ScrollView
-                    className="max-h-40"
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator
-                  >
-                    {model.relationshipCandidates.length === 0 ? (
-                      <Text className={`${ui.theme.tertiaryText}`}>No matching people.</Text>
-                    ) : (
-                      model.relationshipCandidates.map((candidate) =>
-                        renderRelationshipCandidateCard(candidate, false)
-                      )
-                    )}
-                  </ScrollView>
+                  <>
+                    <ScrollView
+                      className="max-h-40"
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator
+                    >
+                      {model.relationshipCandidates.length === 0 ? (
+                        <Text className={`${ui.theme.tertiaryText}`}>No matching people.</Text>
+                      ) : (
+                        model.relationshipCandidates.map((candidate) =>
+                          renderRelationshipCandidateCard(candidate, false)
+                        )
+                      )}
+                    </ScrollView>
+
+                    {model.hasMoreRelationshipCandidates ? (
+                      <Text className={`mt-2 text-xs ${ui.theme.tertiaryText}`}>
+                        {`Showing the first ${MAX_RELATIONSHIP_CANDIDATE_RESULTS} matches. Keep typing to narrow the list.`}
+                      </Text>
+                    ) : null}
+                  </>
                 )}
               </View>
             ) : null}

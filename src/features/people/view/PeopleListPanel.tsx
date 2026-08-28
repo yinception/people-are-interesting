@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, MENU_MODAL_BACKDROP_COLOR, getPlaceholderTextColor } from '../constants';
@@ -66,6 +67,8 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
     menuTopOffset: SORT_MENU_TOP_OFFSET,
   });
 
+  const peopleListScrollRef = useRef<ScrollView | null>(null);
+
   return (
     <View className="relative flex-1">
       <View className={`mb-3 rounded-2xl border p-3 ${ui.theme.border} ${ui.theme.cardBackground}`}>
@@ -110,6 +113,7 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
       </View>
 
       <ScrollView
+        ref={peopleListScrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 12 + ui.keyboardLift }}
@@ -196,6 +200,7 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
                   onPress={() => {
                     model.setSelectedPeopleSortOption(option.value);
                     closeSortMenu();
+                    peopleListScrollRef.current?.scrollTo({ y: 0, animated: true });
                   }}
                   className={`px-3 py-2 ${isSelected ? ui.theme.selectedChipBackground : ''}`}
                 >

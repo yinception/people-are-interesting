@@ -32,6 +32,8 @@ export type PeopleSortOption =
   | 'last_modified_asc'
   | 'last_modified_desc';
 
+export const MAX_RELATIONSHIP_CANDIDATE_RESULTS = 10;
+
 interface RelationshipViewItem {
   createdAt: string;
   id: number;
@@ -56,6 +58,7 @@ export interface UsePeopleScreenModelResult {
   error: string | null;
   expandedNoteId: number | null;
   hasActiveSearch: boolean;
+  hasMoreRelationshipCandidates: boolean;
   isAddingNote: boolean;
   isCreating: boolean;
   isCreatingRelationship: boolean;
@@ -316,6 +319,14 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
 
     return relationshipCandidates.filter((person) => person.name.toLowerCase().includes(trimmedTerm));
   }, [relationshipCandidates, relationshipSearchTerm]);
+
+  const visibleRelationshipCandidates = useMemo(
+    () => filteredRelationshipCandidates.slice(0, MAX_RELATIONSHIP_CANDIDATE_RESULTS),
+    [filteredRelationshipCandidates]
+  );
+
+  const hasMoreRelationshipCandidates =
+    filteredRelationshipCandidates.length > MAX_RELATIONSHIP_CANDIDATE_RESULTS;
 
   const relationshipItems = useMemo<RelationshipViewItem[]>(() => {
     if (!selectedPersonId) {
@@ -667,6 +678,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     error,
     expandedNoteId,
     hasActiveSearch,
+    hasMoreRelationshipCandidates,
     isAddingNote,
     isCreating,
     isCreatingRelationship,
@@ -706,7 +718,7 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     onStartEditRelationshipPress,
     onToggleNoteExpanded,
     peopleCountLabel,
-    relationshipCandidates: filteredRelationshipCandidates,
+    relationshipCandidates: visibleRelationshipCandidates,
     relationshipSearchTerm,
     relationshipItems,
     relationshipTypeInput,

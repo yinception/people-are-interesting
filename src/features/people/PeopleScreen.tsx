@@ -89,6 +89,7 @@ export function PeopleScreen() {
     error,
     expandedNoteId,
     hasActiveSearch,
+    hasMoreRelationshipCandidates,
     isAddingNote,
     isCreating,
     isCreatingRelationship,
@@ -334,6 +335,8 @@ export function PeopleScreen() {
 
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
       setKeyboardHeight(0);
+      // Android's back button hides the keyboard without clearing React Native's focused input.
+      Keyboard.dismiss();
     });
 
     return () => {
@@ -511,6 +514,7 @@ export function PeopleScreen() {
               error,
               expandedNoteId,
               hasActiveSearch,
+              hasMoreRelationshipCandidates,
               isAddingNote,
               isCreating,
               isCreatingRelationship,
