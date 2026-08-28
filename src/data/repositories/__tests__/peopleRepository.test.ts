@@ -19,11 +19,16 @@ describe('peopleRepository', () => {
   test('createPerson inserts and returns row', async () => {
     const db = createMockDb();
     db.runAsync.mockResolvedValue({ lastInsertRowId: 7 });
-    db.getFirstAsync.mockResolvedValue({ id: 7, name: 'Alice', created_at: 'now' });
+    db.getFirstAsync.mockResolvedValue({ id: 7, name: 'Alice', created_at: 'now', updated_at: 'now' });
     getDatabase.mockResolvedValue(db);
 
-    await expect(createPerson('Alice')).resolves.toEqual({ id: 7, name: 'Alice', created_at: 'now' });
-    expect(db.runAsync).toHaveBeenCalled();
+    await expect(createPerson('Alice')).resolves.toEqual({
+      id: 7,
+      name: 'Alice',
+      created_at: 'now',
+      updated_at: 'now',
+    });
+    expect(String(db.runAsync.mock.calls[0][0])).toContain('updated_at');
   });
 
   test('listPeopleWithLatestNote delegates to query', async () => {
@@ -40,11 +45,12 @@ describe('peopleRepository', () => {
     const db = createMockDb();
     db.getFirstAsync
       .mockResolvedValueOnce({ id: 9 })
-      .mockResolvedValueOnce({ id: 9, name: 'Renamed', created_at: 'now' });
+      .mockResolvedValueOnce({ id: 9, name: 'Renamed', created_at: 'now', updated_at: 'later' });
     getDatabase.mockResolvedValue(db);
 
     const row = await updatePersonName(9, 'Renamed');
-    expect(row).toEqual({ id: 9, name: 'Renamed', created_at: 'now' });
+    expect(row).toEqual({ id: 9, name: 'Renamed', created_at: 'now', updated_at: 'later' });
+    expect(String(db.runAsync.mock.calls[0][0])).toContain('updated_at');
   });
 
   test('deletePerson validates existence and deletes', async () => {

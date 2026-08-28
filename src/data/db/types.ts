@@ -2,6 +2,8 @@ export interface Person {
   id: number;
   name: string;
   created_at: string;
+  /** Null for rows created before this column existed; fall back to created_at. */
+  updated_at: string | null;
 }
 
 export interface Note {
@@ -23,12 +25,8 @@ export interface Relationship {
   created_at: string;
 }
 
-export interface PersonWithLatestNote {
-  id: number;
-  name: string;
-  created_at: string;
+export interface PersonListItem extends Person {
   latest_note_content: string | null;
-  latest_note_created_at: string | null;
 }
 
 export interface PersonSearchResult {

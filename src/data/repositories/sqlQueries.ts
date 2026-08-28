@@ -1,8 +1,12 @@
-import { DB_TABLE } from '../db/sqlConstants';
+import { DB_TABLE, NOW_TIMESTAMP_SQL } from '../db/sqlConstants';
 
-export const INSERT_PERSON_SQL = `INSERT INTO ${DB_TABLE.people} (name) VALUES (?)`;
+export const INSERT_PERSON_SQL =
+  `INSERT INTO ${DB_TABLE.people} (name, updated_at) VALUES (?, ${NOW_TIMESTAMP_SQL})`;
 export const SELECT_PERSON_BY_ID_SQL = `SELECT * FROM ${DB_TABLE.people} WHERE id = ?`;
-export const UPDATE_PERSON_NAME_SQL = `UPDATE ${DB_TABLE.people} SET name = ? WHERE id = ?`;
+export const UPDATE_PERSON_NAME_SQL =
+  `UPDATE ${DB_TABLE.people} SET name = ?, updated_at = ${NOW_TIMESTAMP_SQL} WHERE id = ?`;
+export const TOUCH_PERSON_UPDATED_AT_SQL =
+  `UPDATE ${DB_TABLE.people} SET updated_at = ${NOW_TIMESTAMP_SQL} WHERE id = ?`;
 export const DELETE_PERSON_BY_ID_SQL = `DELETE FROM ${DB_TABLE.people} WHERE id = ?`;
 
 export const LIST_PEOPLE_WITH_LATEST_NOTE_SQL = `
@@ -10,33 +14,16 @@ export const LIST_PEOPLE_WITH_LATEST_NOTE_SQL = `
     p.id,
     p.name,
     p.created_at,
+    p.updated_at,
     (
       SELECT n.content
       FROM notes n
       WHERE n.person_id = p.id
-      ORDER BY n.created_at ASC, n.id ASC
-      LIMIT 1
-    ) AS latest_note_content,
-    (
-      SELECT n.created_at
-      FROM notes n
-      WHERE n.person_id = p.id
       ORDER BY n.created_at DESC, n.id DESC
       LIMIT 1
-    ) AS latest_note_created_at
+    ) AS latest_note_content
   FROM people p
-  ORDER BY
-    COALESCE(
-      (
-        SELECT n.created_at
-        FROM notes n
-        WHERE n.person_id = p.id
-        ORDER BY n.created_at DESC, n.id DESC
-        LIMIT 1
-      ),
-      p.created_at
-    ) DESC,
-    p.id DESC
+  ORDER BY COALESCE(p.updated_at, p.created_at) DESC, p.id DESC
 `;
 
 export const INSERT_NOTE_SQL =

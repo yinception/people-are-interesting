@@ -64,7 +64,8 @@ People Are Interesting is a mobile app for capturing notes about people, viewing
 CREATE TABLE people (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT
 );
 
 CREATE TABLE notes (
@@ -72,6 +73,7 @@ CREATE TABLE notes (
   person_id INTEGER NOT NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE
 );
 
@@ -99,6 +101,11 @@ CREATE INDEX idx_relationships_b ON relationships(person_id_b);
 - Both relationship labels are optional and swap together whenever pair order is normalized.
 - Each direction is stored independently, so one-way labels are valid.
 - Latest-note summary is computed with ORDER BY created_at DESC LIMIT 1.
+- `people.updated_at` is touched on person rename and note add/edit/delete.
+- Relationship changes do not touch `people.updated_at`.
+- `people.updated_at` is nullable; fall back to `created_at` when it is null.
+- Timestamps are stored in UTC and rendered in device local time.
+- `people.updated_at` is written with millisecond precision so same-second edits still sort correctly.
 - V1 search uses LIKE on people.name and notes.content.
 - Timestamps are stored as ISO 8601 text.
 - FTS5 is a future optimization option if needed.

@@ -94,6 +94,11 @@ Core tables:
 Design notes:
 - Relationships are stored as one normalized row per person pair.
 - Each relationship row stores two optional labels: `relationship_type` describes `person_id_b` relative to `person_id_a`, and `reverse_relationship_type` describes `person_id_a` relative to `person_id_b`.
+- `people.updated_at` is refreshed when the person is renamed and when their notes are added, edited, or deleted.
+- Relationship changes do not touch `people.updated_at`.
+- `people.updated_at` is nullable, so rows created before the column existed fall back to `created_at` when sorting.
+- Timestamps are stored in UTC and displayed in the device's local time.
+- `people.updated_at` uses millisecond precision so edits within the same second still sort correctly.
 - Notes include `created_at` and `updated_at` timestamps.
 - Search uses `LIKE` against person names and note content.
 

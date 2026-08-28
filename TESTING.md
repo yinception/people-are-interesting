@@ -19,6 +19,8 @@ These tests currently cover core local-first v1 data flows:
 - CSV parsing/formatting helpers
 - Repository shared utilities
 - People repository flows (create, list, update, delete)
+- People `updated_at` maintenance from note changes
+- Timestamp parsing, comparison, and local-time formatting
 - Notes repository flows (create, list, update, delete)
 - Relationships repository flows (create/update pair behavior, two-way label storage, list, delete)
 - Relationship label direction resolution per viewed person

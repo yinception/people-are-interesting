@@ -10,7 +10,10 @@ export async function seedSampleData(): Promise<void> {
 
     for (let index = 0; index < personCount; index += 1) {
       const name = generatePersonName();
-      const personResult = await txn.runAsync('INSERT INTO people (name) VALUES (?)', name);
+      const personResult = await txn.runAsync(
+        "INSERT INTO people (name, updated_at) VALUES (?, datetime('now'))",
+        name
+      );
       personIds.push(personResult.lastInsertRowId);
 
       const noteCount = randomInt(1, 5);

@@ -1,8 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { EntityTableName } from '../db/sqlConstants';
+import { TOUCH_PERSON_UPDATED_AT_SQL } from './sqlQueries';
 
 export interface ExistingIdRow {
   id: number;
+}
+
+export async function touchPeopleUpdatedAt(db: SQLiteDatabase, personIds: number[]): Promise<void> {
+  for (const personId of new Set(personIds)) {
+    await db.runAsync(TOUCH_PERSON_UPDATED_AT_SQL, personId);
+  }
 }
 
 export function requireRow<T>(row: T | null | undefined, missingRowMessage: string): T {

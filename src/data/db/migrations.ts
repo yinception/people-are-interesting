@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getDatabase } from './client';
 import {
   ADD_NOTE_UPDATED_AT_COLUMN_SQL,
+  ADD_PERSON_UPDATED_AT_COLUMN_SQL,
   ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL,
   BACKFILL_NOTE_UPDATED_AT_SQL,
   CREATE_APP_SETTINGS_TABLE_SQL,
@@ -41,6 +42,10 @@ const migrationSteps: MigrationStep[] = [
   {
     version: 5,
     up: migrateToV5,
+  },
+  {
+    version: 6,
+    up: migrateToV6,
   },
 ];
 
@@ -121,5 +126,14 @@ async function migrateToV5(db: SQLiteDatabase): Promise<void> {
 
   if (!hasReverseTypeColumn) {
     await db.execAsync(ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL);
+  }
+}
+
+async function migrateToV6(db: SQLiteDatabase): Promise<void> {
+  const personColumns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(people)');
+  const hasUpdatedAtColumn = personColumns.some((column) => column.name === 'updated_at');
+
+  if (!hasUpdatedAtColumn) {
+    await db.execAsync(ADD_PERSON_UPDATED_AT_COLUMN_SQL);
   }
 }

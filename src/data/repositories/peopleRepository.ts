@@ -1,5 +1,5 @@
 import { getDatabase } from '../db/client';
-import type { Person, PersonWithLatestNote } from '../db/types';
+import type { Person, PersonListItem } from '../db/types';
 import { requireEntityExistsById, requireRow, requireTrimmedText } from './repositoryUtils';
 import {
   DELETE_PERSON_BY_ID_SQL,
@@ -20,10 +20,10 @@ export async function createPerson(name: string): Promise<Person> {
   );
 }
 
-export async function listPeopleWithLatestNote(): Promise<PersonWithLatestNote[]> {
+export async function listPeopleWithLatestNote(): Promise<PersonListItem[]> {
   const db = await getDatabase();
 
-  return db.getAllAsync<PersonWithLatestNote>(LIST_PEOPLE_WITH_LATEST_NOTE_SQL);
+  return db.getAllAsync<PersonListItem>(LIST_PEOPLE_WITH_LATEST_NOTE_SQL);
 }
 
 export async function updatePersonName(personId: number, name: string): Promise<Person> {

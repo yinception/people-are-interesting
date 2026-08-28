@@ -19,3 +19,9 @@ export function createMockTxn() {
     runAsync: jest.fn().mockResolvedValue(undefined),
   };
 }
+
+export function getTouchedPersonIds(db: MockDb): number[] {
+  return db.runAsync.mock.calls
+    .filter((call: unknown[]) => String(call[0]).startsWith('UPDATE people SET updated_at'))
+    .map((call: unknown[]) => call[1] as number);
+}

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import type { PersonWithLatestNote } from '../../../data/database';
+import type { PersonListItem } from '../../../data/database';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import { MAX_RELATIONSHIP_CANDIDATE_RESULTS } from '../usePeopleScreenModel';
 import {
@@ -16,20 +16,8 @@ import { FadeModal } from './FadeModal';
 import { RelationshipLinkForm } from './RelationshipLinkForm';
 import type { PeopleScreenUiProps } from './types';
 import { useAnchoredMenu } from './useAnchoredMenu';
+import { formatLocalDateTime } from '../timestamps';
 
-function formatDateOnly(timestamp: string): string {
-  if (!timestamp) {
-    return '';
-  }
-
-  const normalized = timestamp.trim();
-
-  if (normalized.length >= 10) {
-    return normalized.slice(0, 10);
-  }
-
-  return normalized;
-}
 
 interface PersonDetailPanelProps {
   model: Pick<
@@ -172,7 +160,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
         (relationshipOffsetByIdRef.current.get(relationshipId) ?? 0)
     );
 
-  const renderRelationshipCandidateCard = (candidate: PersonWithLatestNote, isSelected: boolean) => (
+  const renderRelationshipCandidateCard = (candidate: PersonListItem, isSelected: boolean) => (
     <View
       key={candidate.id}
       className={`mb-2 overflow-hidden rounded-lg border ${ui.theme.border} ${ui.theme.cardBackground}`}
@@ -433,9 +421,9 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                   {model.expandedNoteId === note.id ? (
                     <View className="mt-1">
                       <Text className={`text-xs ${ui.theme.tertiaryText}`}>
-                        Created: {formatDateOnly(note.created_at)}
+                        Created: {formatLocalDateTime(note.created_at)}
                         {note.updated_at && note.updated_at !== note.created_at
-                          ? ` | Last edited: ${formatDateOnly(note.updated_at)}`
+                          ? ` | Last edited: ${formatLocalDateTime(note.updated_at)}`
                           : ''}
                       </Text>
                     </View>

@@ -15,7 +15,7 @@ describe('exportRepository', () => {
   test('exportAllDataAsCsv builds CSV with all record types', async () => {
     const db = createMockDb();
     db.getAllAsync
-      .mockResolvedValueOnce([{ id: 1, name: 'Alex', created_at: '2026-01-01' }])
+      .mockResolvedValueOnce([{ id: 1, name: 'Alex', created_at: '2026-01-01', updated_at: '2026-01-05' }])
       .mockResolvedValueOnce([{ id: 2, person_id: 1, content: 'Hi', created_at: '2026-01-01', updated_at: '2026-01-02' }])
       .mockResolvedValueOnce([
         {
@@ -33,7 +33,7 @@ describe('exportRepository', () => {
     const csv = await exportAllDataAsCsv();
     expect(csv).toContain('record_type,id,name');
     expect(csv).toContain('reverse_relationship_type');
-    expect(csv).toContain('person,1,Alex');
+    expect(csv).toContain('person,1,Alex,,,,,,,,,2026-01-01,2026-01-05');
     expect(csv).toContain('note,2,,1,Hi');
     expect(csv).toContain('relationship,3,,,,1,2,friend,mentee,,,2026-01-03,');
     expect(csv).toContain('app_setting,,,,,,,,,theme_mode,dark');
@@ -102,8 +102,8 @@ describe('exportRepository', () => {
     const exportDb = createMockDb();
     exportDb.getAllAsync
       .mockResolvedValueOnce([
-        { id: 1, name: 'Alex', created_at: '2026-01-01' },
-        { id: 2, name: 'Blair', created_at: '2026-01-01' },
+        { id: 1, name: 'Alex', created_at: '2026-01-01', updated_at: '2026-01-05' },
+        { id: 2, name: 'Blair', created_at: '2026-01-01', updated_at: null },
       ])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -139,5 +139,12 @@ describe('exportRepository', () => {
     expect(relationshipInsertCall?.[3]).toBe(2);
     expect(relationshipInsertCall?.[4]).toBe('mentee');
     expect(relationshipInsertCall?.[5]).toBe('mentor');
+
+    const personInsertCalls = txn.runAsync.mock.calls.filter((call: unknown[]) =>
+      String(call[0]).includes('INSERT INTO people')
+    );
+
+    expect(personInsertCalls[0]?.[4]).toBe('2026-01-05');
+    expect(personInsertCalls[1]?.[4]).toBeNull();
   });
 });

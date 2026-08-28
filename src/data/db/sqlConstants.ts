@@ -15,11 +15,15 @@ export const PRAGMA_FOREIGN_KEYS_ON_SQL = 'PRAGMA foreign_keys = ON;';
 export const PRAGMA_FOREIGN_KEYS_OFF_SQL = 'PRAGMA foreign_keys = OFF;';
 export const PRAGMA_JOURNAL_MODE_WAL_SQL = 'PRAGMA journal_mode = WAL;';
 
+// datetime('now') is second-precision, so edits within the same second tie when sorting.
+export const NOW_TIMESTAMP_SQL = "strftime('%Y-%m-%d %H:%M:%f', 'now')";
+
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS people (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS notes (
@@ -91,3 +95,6 @@ export const BACKFILL_NOTE_UPDATED_AT_SQL =
 
 export const ADD_RELATIONSHIP_REVERSE_TYPE_COLUMN_SQL =
   'ALTER TABLE relationships ADD COLUMN reverse_relationship_type TEXT;';
+
+// Left nullable so existing rows fall back to created_at when sorting.
+export const ADD_PERSON_UPDATED_AT_COLUMN_SQL = 'ALTER TABLE people ADD COLUMN updated_at TEXT;';

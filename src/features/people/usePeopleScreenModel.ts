@@ -18,11 +18,12 @@ import {
   updateNote,
   type Note,
   type PersonSearchResult,
-  type PersonWithLatestNote,
+  type PersonListItem,
   type Relationship,
 } from '../../data/database';
 
 import { resolveRelationshipDirection } from './relationshipDirection';
+import { compareTimestamps, toComparableTimestamp } from './timestamps';
 
 export type PeopleSortOption =
   | 'name_asc'
@@ -98,14 +99,14 @@ export interface UsePeopleScreenModelResult {
   onStartEditRelationshipPress: (relationship: RelationshipViewItem) => void;
   onToggleNoteExpanded: (noteId: number) => void;
   peopleCountLabel: string;
-  relationshipCandidates: PersonWithLatestNote[];
+  relationshipCandidates: PersonListItem[];
   relationshipSearchTerm: string;
   relationshipItems: RelationshipViewItem[];
   relationshipTypeInput: string;
   reverseRelationshipTypeInput: string;
   selectedPeopleSortOption: PeopleSortOption;
   searchTerm: string;
-  selectedPerson: PersonWithLatestNote | null;
+  selectedPerson: PersonListItem | null;
   selectedRelationshipTargetId: number | null;
   setEditingPersonName: (value: string) => void;
   setEditingNoteContent: (value: string) => void;
@@ -118,11 +119,11 @@ export interface UsePeopleScreenModelResult {
   setSearchTerm: (term: string) => void;
   setSelectedRelationshipTargetId: (personId: number | null) => void;
   timelineNotes: Note[];
-  visiblePeople: PersonWithLatestNote[];
+  visiblePeople: PersonListItem[];
 }
 
 export function usePeopleScreenModel(): UsePeopleScreenModelResult {
-  const [people, setPeople] = useState<PersonWithLatestNote[]>([]);
+  const [people, setPeople] = useState<PersonListItem[]>([]);
   const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -273,8 +274,10 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
     const sortedPeople = [...filteredPeople];
 
     sortedPeople.sort((left, right) => {
-      const leftLastModified = left.latest_note_created_at ?? left.created_at;
-      const rightLastModified = right.latest_note_created_at ?? right.created_at;
+      const leftLastModified = toComparableTimestamp(left.updated_at, left.created_at);
+      const rightLastModified = toComparableTimestamp(right.updated_at, right.created_at);
+      const leftCreated = toComparableTimestamp(left.created_at, left.created_at);
+      const rightCreated = toComparableTimestamp(right.created_at, right.created_at);
 
       switch (selectedPeopleSortOption) {
         case 'name_asc':
@@ -282,13 +285,13 @@ export function usePeopleScreenModel(): UsePeopleScreenModelResult {
         case 'name_desc':
           return right.name.localeCompare(left.name) || right.id - left.id;
         case 'created_at_asc':
-          return left.created_at.localeCompare(right.created_at) || left.id - right.id;
+          return compareTimestamps(leftCreated, rightCreated) || left.id - right.id;
         case 'created_at_desc':
-          return right.created_at.localeCompare(left.created_at) || right.id - left.id;
+          return compareTimestamps(rightCreated, leftCreated) || right.id - left.id;
         case 'last_modified_asc':
-          return leftLastModified.localeCompare(rightLastModified) || left.id - right.id;
+          return compareTimestamps(leftLastModified, rightLastModified) || left.id - right.id;
         case 'last_modified_desc':
-          return rightLastModified.localeCompare(leftLastModified) || right.id - left.id;
+          return compareTimestamps(rightLastModified, leftLastModified) || right.id - left.id;
         default:
           return 0;
       }

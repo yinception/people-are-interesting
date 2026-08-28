@@ -7,6 +7,7 @@ interface PersonRow {
   id: number;
   name: string;
   created_at: string;
+  updated_at: string | null;
 }
 
 interface NoteRow {
@@ -100,12 +101,13 @@ function parsePersonRow(readCell: CsvCellReader, row: string[], lineNumber: numb
   const id = parseIntegerField(readCell(row, 'id'), `id at line ${lineNumber}`);
   const name = readCell(row, 'name');
   const createdAt = readCell(row, 'created_at');
+  const updatedAt = readCell(row, 'updated_at');
 
   if (!name.trim() || !createdAt.trim()) {
     throw new Error(`Invalid person row at line ${lineNumber}.`);
   }
 
-  return { created_at: createdAt, id, name };
+  return { created_at: createdAt, id, name, updated_at: updatedAt.trim() ? updatedAt : null };
 }
 
 function parseNoteRow(readCell: CsvCellReader, row: string[], lineNumber: number): NoteRow {
@@ -218,10 +220,11 @@ async function replaceAllData({ people, notes, relationships, settings }: Parsed
 
     for (const person of people) {
       await txn.runAsync(
-        'INSERT INTO people (id, name, created_at) VALUES (?, ?, ?)',
+        'INSERT INTO people (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
         person.id,
         person.name,
-        person.created_at
+        person.created_at,
+        person.updated_at
       );
     }
 
@@ -309,7 +312,7 @@ export async function exportAllDataAsCsv(): Promise<string> {
   const db = await getDatabase();
 
   const [people, notes, relationships, settings] = await Promise.all([
-    db.getAllAsync<PersonRow>(`SELECT id, name, created_at FROM ${DB_TABLE.people} ORDER BY id ASC`),
+    db.getAllAsync<PersonRow>(`SELECT id, name, created_at, updated_at FROM ${DB_TABLE.people} ORDER BY id ASC`),
     db.getAllAsync<NoteRow>(
       `SELECT id, person_id, content, created_at, updated_at FROM ${DB_TABLE.notes} ORDER BY id ASC`
     ),
@@ -328,6 +331,7 @@ export async function exportAllDataAsCsv(): Promise<string> {
         id: person.id,
         name: person.name,
         created_at: person.created_at,
+        updated_at: person.updated_at,
       })
     );
   });

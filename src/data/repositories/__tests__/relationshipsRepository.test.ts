@@ -140,6 +140,16 @@ describe('relationshipsRepository', () => {
     getDatabase.mockResolvedValue(db);
 
     await deleteRelationship(9);
+
     expect(db.runAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test('delete rejects a missing relationship', async () => {
+    const db = createMockDb();
+    db.getFirstAsync.mockResolvedValue(null);
+    getDatabase.mockResolvedValue(db);
+
+    await expect(deleteRelationship(9)).rejects.toThrow('Relationship not found.');
+    expect(db.runAsync).not.toHaveBeenCalled();
   });
 });

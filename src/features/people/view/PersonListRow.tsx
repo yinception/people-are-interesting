@@ -1,11 +1,11 @@
 import { memo } from 'react';
 import { Text } from 'react-native';
-import type { PersonWithLatestNote } from '../../../data/database';
+import type { PersonListItem } from '../../../data/database';
 import { AnimatedPressable } from './AnimatedPressable';
 import type { ThemeTokens } from './types';
 
 interface PersonListRowProps {
-  person: PersonWithLatestNote;
+  person: PersonListItem;
   theme: ThemeTokens;
   /** Null when no search is active. */
   matchedNoteCount: number | null;

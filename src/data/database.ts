@@ -4,8 +4,8 @@ export { runMigrationHarness } from './db/migrationHarness';
 export type {
   Note,
   Person,
+  PersonListItem,
   PersonSearchResult,
-  PersonWithLatestNote,
   Relationship,
 } from './db/types';
 

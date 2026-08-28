@@ -53,6 +53,7 @@ export async function createRelationship(
 
   if (existing) {
     await db.runAsync(UPDATE_RELATIONSHIP_TYPES_SQL, storedType, storedReverseType, existing.id);
+
     return requireRow(
       await db.getFirstAsync<Relationship>(SELECT_RELATIONSHIP_BY_ID_SQL, existing.id),
       'Failed to read updated relationship.'
