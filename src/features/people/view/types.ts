@@ -12,6 +12,7 @@ export interface ThemeTokens {
   chipBackground: string;
   selectedChipBackground: string;
   border: string;
+  divider: string;
   inputBorder: string;
   inputBackground: string;
   inputText: string;

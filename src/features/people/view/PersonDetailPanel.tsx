@@ -302,7 +302,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
           ui.addNoteSectionOffsetYRef.current = event.nativeEvent.layout.y;
         }}
       >
-        <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Add note</Text>
+        <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Notes</Text>
         <View className="mt-2 flex-row items-center gap-2">
           <TextInput
             value={model.newNoteContent}
@@ -334,21 +334,15 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
             <Text className="font-semibold text-white">{model.isAddingNote ? 'Saving...' : 'Save'}</Text>
           </AnimatedPressable>
         </View>
-      </View>
 
-      <View
-        className={`${CARD_WITH_TOP_MARGIN_CLASS} ${ui.theme.border} ${ui.theme.cardBackground}`}
-        onLayout={(event) => {
-          ui.notesSectionOffsetYRef.current = event.nativeEvent.layout.y;
-        }}
-      >
-        <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Notes</Text>
+        <View className={`my-4 border-t ${ui.theme.divider}`} />
+
         {model.isLoadingDetails ? (
-          <Text className={`mt-2 ${ui.theme.secondaryText}`}>Loading details...</Text>
+          <Text className={`mt-0 ${ui.theme.secondaryText}`}>Loading details...</Text>
         ) : model.timelineNotes.length === 0 ? (
-          <Text className={`mt-2 ${ui.theme.tertiaryText}`}>No notes yet.</Text>
+          <Text className={`mt-0 ${ui.theme.tertiaryText}`}>No notes yet.</Text>
         ) : (
-          <View className="mt-2">
+          <View className="mt-0">
             {model.timelineNotes.map((note) => (
               model.editingNoteId === note.id ? (
                 <View

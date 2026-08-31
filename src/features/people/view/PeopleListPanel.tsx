@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import type { UsePeopleScreenModelResult } from '../usePeopleScreenModel';
 import { DROPDOWN_MENU_ELEVATION, LAYER_Z_INDEX, MENU_MODAL_BACKDROP_COLOR, getPlaceholderTextColor } from '../constants';
@@ -68,6 +68,11 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
   });
 
   const peopleListScrollRef = useRef<ScrollView | null>(null);
+
+  // Search is debounced, so also reset once results land or a smooth scroll would be cut short.
+  useEffect(() => {
+    peopleListScrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [model.searchTerm, model.isSearching]);
 
   return (
     <View className="relative flex-1">
