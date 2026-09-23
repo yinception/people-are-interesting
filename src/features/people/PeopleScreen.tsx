@@ -278,6 +278,12 @@ export function PeopleScreen() {
     (offsetY: number) => {
       focusedSectionOffsetYRef.current = offsetY;
 
+      // Browsers already scroll focused fields into view, and there is no keyboard inset to
+      // compensate for, so forcing the section to the top only overshoots to the scroll end.
+      if (Platform.OS === 'web') {
+        return;
+      }
+
       requestAnimationFrame(() => {
         scrollPersonDetailSectionToTop(offsetY);
       });
