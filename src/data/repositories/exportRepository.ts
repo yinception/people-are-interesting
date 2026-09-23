@@ -1,5 +1,6 @@
 import { getDatabase } from '../db/client';
 import { DB_TABLE, PRAGMA_FOREIGN_KEYS_OFF_SQL, PRAGMA_FOREIGN_KEYS_ON_SQL } from '../db/sqlConstants';
+import { withExclusiveTransaction } from '../db/transactions';
 import { getCell, parseCsv, parseIntegerField, requireColumnIndex, toCsvRow } from './csvUtils';
 import { normalizeRelationshipPair } from './repositoryUtils';
 
@@ -210,7 +211,7 @@ function parseImportCsv(csvText: string): ParsedCsvData {
 async function replaceAllData({ people, notes, relationships, settings }: ParsedCsvData): Promise<void> {
   const db = await getDatabase();
 
-  await db.withExclusiveTransactionAsync(async (txn) => {
+  await withExclusiveTransaction(db, async (txn) => {
     await txn.runAsync(PRAGMA_FOREIGN_KEYS_OFF_SQL);
 
     await txn.runAsync(`DELETE FROM ${DB_TABLE.relationships}`);

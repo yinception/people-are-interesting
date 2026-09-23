@@ -28,6 +28,9 @@
       "checkAutomatically": "NEVER",
       "fallbackToCacheTimeout": 0
     },
+    "experiments": {
+      "baseUrl": "/people-are-interesting"
+    },
     "extra": {
       "eas": {
         "projectId": "145a800e-ebcc-4ba8-b39d-8dfa2c1b0e17"

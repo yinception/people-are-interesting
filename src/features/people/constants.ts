@@ -1,6 +1,8 @@
+import { Platform } from 'react-native';
 import type { ThemeMode } from './view/types';
 
 export const UI_LAYOUT = {
+  appMaxWidth: 420,
   bottomExtraPadding: 10,
   globalKeyboardLiftOffset: 50,
   noteInputMinHeight: 44,
@@ -11,6 +13,9 @@ export const PAGE_TRANSITION = {
   fadeStartOpacity: 0,
   fadeDurationMs: 250,
 } as const;
+
+// Only wide browser windows need the cap; native already renders at device width.
+export const APP_MAX_WIDTH = Platform.OS === 'web' ? UI_LAYOUT.appMaxWidth : undefined;
 
 export const PRESSABLE_ANIMATION = {
   disabledRestOpacity: 0.5,

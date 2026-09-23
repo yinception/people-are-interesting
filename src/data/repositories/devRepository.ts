@@ -1,10 +1,11 @@
 import { getDatabase } from '../db/client';
+import { withExclusiveTransaction } from '../db/transactions';
 import { createRelationshipPairKey, normalizeRelationshipPair } from './repositoryUtils';
 
 export async function seedSampleData(): Promise<void> {
   const db = await getDatabase();
 
-  await db.withExclusiveTransactionAsync(async (txn) => {
+  await withExclusiveTransaction(db, async (txn) => {
     const personCount = randomInt(3, 8);
     const personIds: number[] = [];
 

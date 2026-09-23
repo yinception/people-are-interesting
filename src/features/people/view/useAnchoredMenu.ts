@@ -1,5 +1,11 @@
-import { useCallback, useState } from 'react';
-import { useWindowDimensions, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useRef, useState, type ComponentRef, type RefObject } from 'react';
+import {
+  Platform,
+  useWindowDimensions,
+  View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+} from 'react-native';
 
 interface TriggerLayout {
   x: number;
@@ -33,6 +39,7 @@ interface UseAnchoredMenuResult {
   closeMenu: () => void;
   toggleMenu: (event: GestureResponderEvent) => void;
   onTriggerLayout: (event: LayoutChangeEvent) => void;
+  triggerRef: RefObject<ComponentRef<typeof View> | null>;
   menuLeft: number;
   menuTop: number;
 }
@@ -64,6 +71,7 @@ export function useAnchoredMenu({
   const { width: windowWidth } = useWindowDimensions();
   const [triggerLayout, setTriggerLayout] = useState<TriggerLayout | null>(null);
   const [triggerSize, setTriggerSize] = useState<TriggerSize>({ width: 0, height: 0 });
+  const triggerRef = useRef<ComponentRef<typeof View> | null>(null);
 
   const closeMenu = useCallback(() => {
     setIsOpen(false);
@@ -71,6 +79,22 @@ export function useAnchoredMenu({
 
   const openMenu = useCallback(
     (event: GestureResponderEvent) => {
+      const trigger = triggerRef.current;
+
+      // Web reports locationX/Y as pageX/Y, so the touch offsets cannot locate the trigger there.
+      if (Platform.OS === 'web' && trigger) {
+        trigger.measureInWindow((x, y, width, height) => {
+          setTriggerLayout({
+            x,
+            y,
+            width: width || triggerSize.width,
+            height: height || triggerSize.height,
+          });
+          setIsOpen(true);
+        });
+        return;
+      }
+
       const { pageX, pageY, locationX, locationY } = event.nativeEvent;
       const x = pageX - locationX;
       const y = pageY - locationY;
@@ -109,6 +133,7 @@ export function useAnchoredMenu({
     closeMenu,
     toggleMenu,
     onTriggerLayout,
+    triggerRef,
     menuLeft,
     menuTop,
   };

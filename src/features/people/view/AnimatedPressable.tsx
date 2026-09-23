@@ -1,7 +1,9 @@
+import { cssInterop } from 'nativewind';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Keyboard,
+  Platform,
   Pressable,
   type GestureResponderEvent,
   type PressableProps,
@@ -10,6 +12,11 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { PRESSABLE_ANIMATION } from '../constants';
+
+// react-native-web's Animated wrapper drops className, so resolve it into the style prop instead.
+if (Platform.OS === 'web') {
+  cssInterop(Animated.View, { className: 'style' });
+}
 
 interface AnimatedPressableProps extends PressableProps {
   className?: string;

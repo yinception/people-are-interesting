@@ -6,7 +6,7 @@ import { ScreenHeader } from './view/ScreenHeader';
 import { SettingsPanel } from './view/SettingsPanel';
 import { AnimatedPressable } from './view/AnimatedPressable';
 import { FadeModal } from './view/FadeModal';
-import { PAGE_TRANSITION, SETTINGS_MODAL_BACKDROP_COLOR } from './constants';
+import { APP_MAX_WIDTH, PAGE_TRANSITION, SETTINGS_MODAL_BACKDROP_COLOR } from './constants';
 import type { PeopleScreenViewProps } from './view/types';
 
 export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
@@ -78,7 +78,10 @@ export function PeopleScreenView({ model, ui }: PeopleScreenViewProps) {
         onRequestClose={() => ui.setViewMode('people')}
       >
         <View pointerEvents="box-none" className="flex-1 items-center justify-center">
-          <View className={`h-[80%] w-[96%] overflow-hidden rounded-2xl border ${ui.theme.border} ${ui.theme.panelBackground}`}>
+          <View
+            className={`h-[80%] w-[96%] overflow-hidden rounded-2xl border ${ui.theme.border} ${ui.theme.panelBackground}`}
+            style={{ maxWidth: APP_MAX_WIDTH }}
+          >
             <View className={`flex-row items-center justify-between border-b px-4 py-3 ${ui.theme.border}`}>
               <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>Settings</Text>
 

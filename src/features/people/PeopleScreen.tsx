@@ -1,10 +1,6 @@
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   BackHandler,
   Keyboard,
   KeyboardAvoidingView,
@@ -15,7 +11,9 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { exportAllDataAsCsv, getThemeModeSetting, importAllDataFromCsv, setThemeModeSetting } from '../../data/database';
 import { PeopleScreenView } from './PeopleScreenView';
-import { UI_LAYOUT } from './constants';
+import { pickCsvFile, saveCsvExport } from './csvFile';
+import { confirmAction, showAlert } from './dialogs';
+import { APP_MAX_WIDTH, UI_LAYOUT } from './constants';
 import { usePeopleScreenModel } from '../../features/people/usePeopleScreenModel';
 import type { ThemeMode, ThemeTokens, ViewMode } from './view/types';
 
@@ -203,104 +201,70 @@ export function PeopleScreen() {
     try {
       setIsExportingData(true);
 
-      const csvText = await exportAllDataAsCsv();
-      const documentDirectory = FileSystem.documentDirectory;
+      const savedFilePath = await saveCsvExport(await exportAllDataAsCsv());
 
-      if (!documentDirectory) {
-        throw new Error('Document directory is unavailable on this device.');
+      if (savedFilePath) {
+        showAlert('Export complete', `CSV saved to:\n${savedFilePath}`);
       }
-
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileUri = `${documentDirectory}people-are-interesting-export-${timestamp}.csv`;
-
-      await FileSystem.writeAsStringAsync(fileUri, csvText, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-
-      const canShare = await Sharing.isAvailableAsync();
-
-      if (!canShare) {
-        Alert.alert('Export complete', `CSV saved to:\n${fileUri}`);
-        return;
-      }
-
-      await Sharing.shareAsync(fileUri, {
-        dialogTitle: 'Export all data as CSV',
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
     } catch (exportError) {
       const message = exportError instanceof Error ? exportError.message : 'Unknown export error';
-      Alert.alert('Export failed', message);
+      showAlert('Export failed', message);
     } finally {
       setIsExportingData(false);
     }
   }, []);
 
   const onImportDataPress = useCallback(() => {
-    Alert.alert(
-      'Import CSV?',
-      'This will replace all local people, notes, relationships, and settings with data from the selected CSV file.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Import',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                setIsImportingData(true);
+    void (async () => {
+      const confirmed = await confirmAction({
+        title: 'Import CSV?',
+        message:
+          'This will replace all local people, notes, relationships, and settings with data from the selected CSV file.',
+        confirmLabel: 'Import',
+        destructive: true,
+      });
 
-                const result = await DocumentPicker.getDocumentAsync({
-                  copyToCacheDirectory: true,
-                  multiple: false,
-                  type: ['text/csv', 'text/plain'],
-                });
+      if (!confirmed) {
+        return;
+      }
 
-                if (result.canceled || result.assets.length === 0) {
-                  return;
-                }
+      try {
+        setIsImportingData(true);
 
-                const selectedFile = result.assets[0];
-                const csvText = await FileSystem.readAsStringAsync(selectedFile.uri, {
-                  encoding: FileSystem.EncodingType.UTF8,
-                });
+        const csvText = await pickCsvFile();
 
-                const summary = await importAllDataFromCsv(csvText);
-                await onRefreshDataPress();
+        if (csvText === null) {
+          return;
+        }
 
-                const importedTheme = await getThemeModeSetting();
-                if (importedTheme) {
-                  setThemeMode(importedTheme);
-                }
+        const summary = await importAllDataFromCsv(csvText);
+        await onRefreshDataPress();
 
-                Alert.alert(
-                  'Import complete',
-                  `Imported ${summary.people} people, ${summary.notes} notes, ${summary.relationships} relationships, and ${summary.settings} settings.`
-                );
-              } catch (importError) {
-                const message = importError instanceof Error ? importError.message : 'Unknown import error';
+        const importedTheme = await getThemeModeSetting();
+        if (importedTheme) {
+          setThemeMode(importedTheme);
+        }
 
-                if (message.toLowerCase().includes('native module') || message.toLowerCase().includes('document picker')) {
-                  Alert.alert(
-                    'Import unavailable',
-                    'File import is unavailable in this installed app binary. Install the latest rebuilt development client and try again.'
-                  );
-                  return;
-                }
+        showAlert(
+          'Import complete',
+          `Imported ${summary.people} people, ${summary.notes} notes, ${summary.relationships} relationships, and ${summary.settings} settings.`
+        );
+      } catch (importError) {
+        const message = importError instanceof Error ? importError.message : 'Unknown import error';
 
-                Alert.alert('Import failed', message);
-              } finally {
-                setIsImportingData(false);
-              }
-            })();
-          },
-        },
-      ]
-    );
+        if (message.toLowerCase().includes('native module') || message.toLowerCase().includes('document picker')) {
+          showAlert(
+            'Import unavailable',
+            'File import is unavailable in this installed app binary. Install the latest rebuilt development client and try again.'
+          );
+          return;
+        }
+
+        showAlert('Import failed', message);
+      } finally {
+        setIsImportingData(false);
+      }
+    })();
   }, [onRefreshDataPress]);
 
   const scrollPersonDetailSectionToTop = useCallback((offsetY: number) => {
@@ -373,17 +337,16 @@ export function PeopleScreen() {
         return true;
       }
 
-      Alert.alert('Close app?', 'Are you sure you want to close People Are Interesting?', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Close',
-          style: 'destructive',
-          onPress: () => BackHandler.exitApp(),
-        },
-      ]);
+      void confirmAction({
+        title: 'Close app?',
+        message: 'Are you sure you want to close People Are Interesting?',
+        confirmLabel: 'Close',
+        destructive: true,
+      }).then((confirmed) => {
+        if (confirmed) {
+          BackHandler.exitApp();
+        }
+      });
 
       return true;
     };
@@ -415,80 +378,60 @@ export function PeopleScreen() {
       return;
     }
 
-    Alert.alert(
-      'Delete person?',
-      `This will permanently delete ${selectedPerson.name} and all related notes and relationships.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void onDeletePersonPress();
-          },
-        },
-      ]
-    );
+    void confirmAction({
+      title: 'Delete person?',
+      message: `This will permanently delete ${selectedPerson.name} and all related notes and relationships.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).then((confirmed) => {
+      if (confirmed) {
+        void onDeletePersonPress();
+      }
+    });
   }, [onDeletePersonPress, selectedPerson]);
 
   const onConfirmDeleteNotePress = useCallback(
     (noteId: number) => {
-      Alert.alert('Delete note?', 'This note will be permanently deleted.', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void onDeleteNotePress(noteId);
-          },
-        },
-      ]);
+      void confirmAction({
+        title: 'Delete note?',
+        message: 'This note will be permanently deleted.',
+        confirmLabel: 'Delete',
+        destructive: true,
+      }).then((confirmed) => {
+        if (confirmed) {
+          void onDeleteNotePress(noteId);
+        }
+      });
     },
     [onDeleteNotePress]
   );
 
   const onConfirmDeleteRelationshipPress = useCallback(
     (relationshipId: number) => {
-      Alert.alert('Delete relationship?', 'This relationship will be permanently deleted.', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void onDeleteRelationshipPress(relationshipId);
-          },
-        },
-      ]);
+      void confirmAction({
+        title: 'Delete relationship?',
+        message: 'This relationship will be permanently deleted.',
+        confirmLabel: 'Delete',
+        destructive: true,
+      }).then((confirmed) => {
+        if (confirmed) {
+          void onDeleteRelationshipPress(relationshipId);
+        }
+      });
     },
     [onDeleteRelationshipPress]
   );
 
   const onConfirmSeedPress = useCallback(() => {
-    Alert.alert(
-      'Create sample data?',
-      'This will add randomized people, notes, and relationships to your local database.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Create',
-          onPress: () => {
-            void onSeedPress();
-          },
-        },
-      ]
-    );
+    void confirmAction({
+      title: 'Create sample data?',
+      message: 'This will add randomized people, notes, and relationships to your local database.',
+      confirmLabel: 'Create',
+    }).then((confirmed) => {
+      if (confirmed) {
+        void onSeedPress();
+      }
+    });
   }, [onSeedPress]);
 
   return (
@@ -499,8 +442,11 @@ export function PeopleScreen() {
         keyboardVerticalOffset={0}
       >
         <View
-          className="flex-1 px-2"
-          style={{ paddingBottom: insets.bottom + UI_LAYOUT.bottomExtraPadding + keyboardLift }}
+          className="w-full flex-1 self-center px-2"
+          style={{
+            maxWidth: APP_MAX_WIDTH,
+            paddingBottom: insets.bottom + UI_LAYOUT.bottomExtraPadding + keyboardLift,
+          }}
         >
           <PeopleScreenView
             model={{

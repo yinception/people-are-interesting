@@ -113,6 +113,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
     closeMenu: closePersonActionsMenu,
     toggleMenu: togglePersonActionsMenu,
     onTriggerLayout: onActionsTriggerLayout,
+    triggerRef: personActionsTriggerRef,
     menuLeft,
     menuTop,
   } = useAnchoredMenu({
@@ -274,7 +275,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
               <Text className={`flex-1 text-2xl font-bold ${ui.theme.headingText}`}>{model.selectedPerson.name}</Text>
             </Pressable>
             <View className="relative" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
-              <View onLayout={onActionsTriggerLayout}>
+              <View ref={personActionsTriggerRef} onLayout={onActionsTriggerLayout}>
                 <AnimatedPressable
                   accessibilityRole="button"
                   onPress={togglePersonActionsMenu}

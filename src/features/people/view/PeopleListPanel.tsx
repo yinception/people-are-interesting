@@ -57,6 +57,7 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
     closeMenu: closeSortMenu,
     toggleMenu: toggleSortMenu,
     onTriggerLayout: onSortTriggerLayout,
+    triggerRef: sortTriggerRef,
     menuLeft,
     menuTop,
   } = useAnchoredMenu({
@@ -104,7 +105,7 @@ export function PeopleListPanel({ model, ui }: PeopleListPanelProps) {
         <Text className={`text-lg font-semibold ${ui.theme.headingText}`}>People ({model.peopleCountLabel})</Text>
         <View className="relative flex-row items-center gap-2" style={{ zIndex: LAYER_Z_INDEX.dropdownTriggerContainer }}>
           {model.isSearching ? <Text className={ui.theme.secondaryText}>Searching...</Text> : null}
-          <View onLayout={onSortTriggerLayout}>
+          <View ref={sortTriggerRef} onLayout={onSortTriggerLayout}>
             <AnimatedPressable
               accessibilityRole="button"
               onPress={toggleSortMenu}
