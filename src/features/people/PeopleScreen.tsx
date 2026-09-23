@@ -368,6 +368,13 @@ export function PeopleScreen() {
     }
   }, [editingNoteId]);
 
+  // Saving a note clears the text without firing a change event, so reset the grown input here.
+  useEffect(() => {
+    if (newNoteContent.length === 0) {
+      setNewNoteInputHeight(UI_LAYOUT.noteInputMinHeight);
+    }
+  }, [newNoteContent]);
+
   const keyboardLift =
     keyboardHeight > 0
       ? Math.max(0, keyboardHeight - insets.bottom + UI_LAYOUT.globalKeyboardLiftOffset)

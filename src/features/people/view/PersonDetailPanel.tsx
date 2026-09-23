@@ -6,12 +6,15 @@ import { MAX_RELATIONSHIP_CANDIDATE_RESULTS } from '../usePeopleScreenModel';
 import {
   CARD_CLASS,
   CARD_WITH_TOP_MARGIN_CLASS,
+  CENTERED_INPUT_WEB_STYLE,
   DROPDOWN_MENU_ELEVATION,
+  INPUT_AUTO_GROW_WEB_OFFSET,
   LAYER_Z_INDEX,
   MENU_MODAL_BACKDROP_COLOR,
   getPlaceholderTextColor,
 } from '../constants';
 import { AnimatedPressable } from './AnimatedPressable';
+import { measureWebInputHeight } from './autoGrowInput';
 import { FadeModal } from './FadeModal';
 import { RelationshipLinkForm } from './RelationshipLinkForm';
 import type { PeopleScreenUiProps } from './types';
@@ -133,6 +136,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
   const relationshipOffsetByIdRef = useRef<Map<number, number>>(new Map());
   const relationshipListRelativeOffsetYRef = useRef(0);
   const relationshipSearchRowRelativeOffsetYRef = useRef(0);
+  const newNoteInputRef = useRef<TextInput | null>(null);
 
   const updateRelationshipSearchInputOffset = () => {
     ui.relationshipSearchInputRowOffsetYRef.current =
@@ -306,14 +310,26 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
         <Text className={`text-sm font-semibold uppercase tracking-wide ${ui.theme.tertiaryText}`}>Notes</Text>
         <View className="mt-2 flex-row items-center gap-2">
           <TextInput
+            ref={newNoteInputRef}
             value={model.newNoteContent}
-            onChangeText={model.setNewNoteContent}
+            onChangeText={(text) => {
+              model.setNewNoteContent(text);
+
+              const measuredHeight = measureWebInputHeight(newNoteInputRef.current, ui.noteInputMinHeight);
+
+              if (measuredHeight !== null) {
+                ui.setNewNoteInputHeight(measuredHeight);
+              }
+            }}
             onFocus={() => ui.onFocusPersonDetailSection(ui.addNoteSectionOffsetYRef.current)}
             multiline
             scrollEnabled={false}
             onSubmitEditing={() => void model.onSubmitNewNotePress()}
             onContentSizeChange={(event) => {
-              const nextHeight = Math.max(ui.noteInputMinHeight, Math.ceil(event.nativeEvent.contentSize.height));
+              const nextHeight = Math.max(
+                ui.noteInputMinHeight,
+                Math.ceil(event.nativeEvent.contentSize.height) + INPUT_AUTO_GROW_WEB_OFFSET
+              );
               ui.setNewNoteInputHeight(nextHeight);
             }}
             placeholder="Write a note"
@@ -321,7 +337,7 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
             editable={!model.isLoadingDetails && !model.isAddingNote}
             returnKeyType="default"
             textAlignVertical="center"
-            style={{ height: ui.newNoteInputHeight }}
+            style={[{ height: ui.newNoteInputHeight }, CENTERED_INPUT_WEB_STYLE]}
             className={`flex-1 rounded-xl border px-3 py-2 ${ui.theme.inputBorder} ${ui.theme.inputBackground} ${ui.theme.inputText}`}
           />
           <AnimatedPressable
@@ -368,7 +384,10 @@ export function PersonDetailPanel({ model, ui }: PersonDetailPanelProps) {
                       scrollEnabled={false}
                       onSubmitEditing={() => void model.onSaveEditedNotePress()}
                       onContentSizeChange={(event) => {
-                        const nextHeight = Math.max(ui.noteInputMinHeight, Math.ceil(event.nativeEvent.contentSize.height));
+                        const nextHeight = Math.max(
+                          ui.noteInputMinHeight,
+                          Math.ceil(event.nativeEvent.contentSize.height) + INPUT_AUTO_GROW_WEB_OFFSET
+                        );
                         ui.setEditNoteInputHeight(nextHeight);
                       }}
                       placeholder="Edit note"

@@ -17,6 +17,25 @@ export const PAGE_TRANSITION = {
 // Only wide browser windows need the cap; native already renders at device width.
 export const APP_MAX_WIDTH = Platform.OS === 'web' ? UI_LAYOUT.appMaxWidth : undefined;
 
+const NOTE_INPUT_LINE_HEIGHT = 20;
+const INPUT_BORDER_WIDTH = 1;
+const CENTERED_INPUT_WEB_PADDING =
+  (UI_LAYOUT.noteInputMinHeight - INPUT_BORDER_WIDTH * 2 - NOTE_INPUT_LINE_HEIGHT) / 2;
+
+// react-native-web ignores textAlignVertical, so pad the single-line note input to center it instead.
+// The height includes the border, so discount it or the textarea overflows and shows a scrollbar.
+export const CENTERED_INPUT_WEB_STYLE =
+  Platform.OS === 'web'
+    ? {
+        lineHeight: NOTE_INPUT_LINE_HEIGHT,
+        paddingTop: CENTERED_INPUT_WEB_PADDING,
+        paddingBottom: CENTERED_INPUT_WEB_PADDING,
+      }
+    : null;
+
+// Web measures content size without the border, while the height style includes it.
+export const INPUT_AUTO_GROW_WEB_OFFSET = Platform.OS === 'web' ? INPUT_BORDER_WIDTH * 2 : 0;
+
 export const PRESSABLE_ANIMATION = {
   disabledRestOpacity: 0.5,
   disabledPressedOpacity: 0.5,
