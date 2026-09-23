@@ -1,8 +1,10 @@
 # People Are Interesting
 
-People Are Interesting is a local-first mobile app for creating and managing notes about people you meet and know.
+People Are Interesting is a local-first app for creating and managing notes about people you meet and know.
 
-The app is built with Expo + React Native + TypeScript and uses SQLite on-device storage (no backend, no auth in v1).
+The app is built with Expo + React Native + TypeScript and uses SQLite storage (no backend, no auth in v1). It runs on Android and iOS, and in the browser.
+
+**Live web app: https://yinception.github.io/people-are-interesting/**
 
 ## What The App Does
 
@@ -54,6 +56,7 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
   - Relationships (both directional labels)
   - App settings (for example theme mode)
 - Import matches CSV columns by name, so exports created before a column was added still import.
+- On device, export opens the share sheet. In the browser, export downloads a file and import uses the file picker.
 
 ### 6. App Settings
 - Light/dark theme toggle.
@@ -62,6 +65,7 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
 ## Tech Stack
 - Expo SDK 57
 - React Native
+- React Native Web (browser target)
 - TypeScript (strict mode)
 - expo-sqlite
 - NativeWind
@@ -79,9 +83,19 @@ The app is built with Expo + React Native + TypeScript and uses SQLite on-device
 
 ### Data Layer
 - `src/data/db/*`
-  - SQLite client, migrations, migration harness, DB constants.
+  - SQLite client, migrations, migration harness, DB constants, transaction helpers.
 - `src/data/repositories/*`
   - Repository functions for people, notes, relationships, search, settings, import/export.
+
+### Platform-Specific Code
+
+Web differences are isolated so the native code path is unchanged:
+- `src/features/people/csvFile.ts` / `csvFile.web.ts` - file save and pick, split by platform extension.
+- `src/features/people/dialogs.ts` - alert/confirm shim, because `react-native-web` does not export `Alert`.
+- `src/data/db/transactions.ts` - `withExclusiveTransactionAsync` is unsupported on web.
+- `src/features/people/view/AnimatedPressable.tsx` - maps `className` into `style` on web, where the animated wrapper drops it.
+- `src/features/people/view/useAnchoredMenu.ts` - anchors menus with `measureInWindow` on web, where touch offsets cannot locate the trigger.
+- `src/features/people/constants.ts` - `APP_MAX_WIDTH` caps layout at phone width on web only.
 
 ## Local Database Model
 
@@ -109,6 +123,7 @@ Design notes:
 - `npm run android`
 - `npm run ios`
 - `npm run web`
+- `npm run web:build` (production web export to `dist/`)
 
 ### Quality
 - `npx tsc --noEmit`
@@ -128,6 +143,39 @@ Optional helpers:
 - Download/install a built artifact from EAS:
   - `npx eas build:run --platform android`
 
+## Web
+
+The app is deployed to GitHub Pages:
+
+**https://yinception.github.io/people-are-interesting/**
+
+Data is stored in the browser's origin private file system (OPFS) through the same `expo-sqlite` API used on device. Every browser keeps its own isolated database. Nothing syncs between browsers, devices, or the mobile app, so use CSV export/import to move data across them.
+
+### Installing
+
+- iOS Safari: Share, then **Add to Home Screen**. Launch from the icon rather than from inside Safari; only the installed icon gets standalone mode and durable storage. Chrome and other iOS browsers cannot install it, because every iOS browser is required to use WebKit.
+- Android Chrome or Brave: menu, then **Install app**.
+- Desktop: open the link directly.
+
+Once loaded, the app works offline.
+
+### Deploying
+
+Pushes to `main` deploy automatically via `.github/workflows/deploy-pages.yml`. The repository's Pages source must stay set to **GitHub Actions**.
+
+`app.json` sets `experiments.baseUrl` to `/people-are-interesting` so assets resolve under the repository subpath. Renaming the repository requires updating that value.
+
+### Previewing a production build locally
+
+`npm run web` is the development server. To check the exported build, serve it under the same subpath the deployment uses, otherwise the `baseUrl` asset paths will not resolve:
+
+```sh
+npm run web:build
+mkdir -p /tmp/pai && cp -r dist /tmp/pai/people-are-interesting
+(cd /tmp/pai && python3 -m http.server 4321)
+# open http://localhost:4321/people-are-interesting/
+```
+
 ## Testing
 
 Automated tests currently focus on:
@@ -139,6 +187,14 @@ Automated tests currently focus on:
 See `TESTING.md` for more details.
 
 ## Troubleshooting
+
+### Web app hangs on "Initializing local database..."
+
+`expo-sqlite` takes an exclusive OPFS lock on the browser database. A stale tab or worker can keep that lock held, leaving the next page load waiting on `getDatabase()` forever. There is no console error.
+
+The symptoms look like a code regression: the people list renders empty and every button appears dead, because the UI is gated on the database being ready.
+
+To clear it, close all tabs pointing at the app and restart the dev server.
 
 ### Fresh install still shows old local data
 
@@ -152,10 +208,11 @@ If you still see unexpected old data:
 - Install the new APK and launch again.
 
 ## Current Product Scope (v1)
-- Fully local-first on-device operation
+- Fully local-first operation on every platform
 - No cloud sync
 - No authentication
-- Android is the primary runtime target, with cross-platform code maintained
+- Android is the primary mobile runtime target, with cross-platform code maintained
+- Web runs the same codebase, with platform differences confined to `Platform.OS === 'web'` branches and `.web.ts` files
 
 ## License
 
